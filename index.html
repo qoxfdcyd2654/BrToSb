@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrToSb — Браузер на Supabase</title>
+    <title>BrToSb — Полноценный браузер на Supabase</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
@@ -12,148 +12,87 @@
             box-sizing: border-box;
         }
         body {
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-            min-height: 100vh;
-            padding: 16px;
+            background: #1a1a2e;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        .browser-container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-        .browser-header {
+        /* Браузерное окружение */
+        .browser-shell {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 16px;
+            flex-direction: column;
+            height: 100vh;
         }
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-        }
-        .logo-text {
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-        }
-        .badge {
-            background: rgba(255,255,255,0.2);
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            color: rgba(255,255,255,0.8);
-        }
-        .auth-btn {
-            background: rgba(255,255,255,0.1);
-            border: none;
-            color: white;
-            padding: 8px 20px;
-            border-radius: 12px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            transition: all 0.2s;
-        }
-        .auth-btn:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        .browser-frame {
+        /* Верхняя панель */
+        .browser-toolbar {
             background: #1e1e2e;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            padding: 8px 12px;
+            border-bottom: 1px solid #2a2a3e;
         }
-        .tabs-bar {
+        /* Вкладки */
+        .tabs-row {
             display: flex;
-            align-items: center;
             gap: 4px;
-            padding: 12px 12px 0 12px;
             overflow-x: auto;
-            background: #1e1e2e;
+            padding-bottom: 8px;
         }
         .tab {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 16px;
+            padding: 6px 12px;
             background: #2a2a3e;
-            border-radius: 10px 10px 0 0;
+            border-radius: 8px 8px 0 0;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 12px;
             color: #aaa;
-            transition: all 0.2s;
             white-space: nowrap;
         }
         .tab.active {
             background: #3a3a5e;
             color: white;
-            border-bottom: 2px solid #ff6b6b;
         }
-        .tab:hover:not(.active) {
-            background: #353550;
-            color: #ddd;
-        }
-        .close-tab {
-            width: 16px;
-            height: 16px;
-            opacity: 0.6;
-            cursor: pointer;
-        }
-        .close-tab:hover {
-            opacity: 1;
-        }
-        .new-tab-btn {
-            display: flex;
+        .tab-close {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #ff6b6b;
+            display: inline-flex;
             align-items: center;
-            gap: 4px;
-            padding: 8px 12px;
-            background: #2a2a3e;
-            border-radius: 10px 10px 0 0;
+            justify-content: center;
+            font-size: 10px;
             cursor: pointer;
-            font-size: 13px;
+        }
+        .new-tab {
+            padding: 6px 12px;
+            background: #2a2a3e;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-size: 12px;
             color: #aaa;
         }
-        .new-tab-btn:hover {
-            background: #353550;
-            color: #ddd;
-        }
-        .nav-bar {
+        /* Навигация */
+        .nav-controls {
             display: flex;
-            align-items: center;
             gap: 8px;
-            padding: 12px 16px;
-            background: #1e1e2e;
-            border-top: 1px solid #2a2a3e;
+            align-items: center;
+            margin-top: 8px;
         }
         .nav-btn {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
+            background: #2a2a3e;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #2a2a3e;
-            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
         }
-        .nav-btn:hover {
-            background: #3a3a5e;
-            transform: scale(1.05);
-        }
-        .url-bar {
+        .url-container {
             flex: 1;
             background: #2a2a3e;
-            border-radius: 12px;
-            padding: 8px 16px;
-            border: 1px solid #3a3a5e;
+            border-radius: 8px;
+            padding: 6px 12px;
         }
-        .url-bar input {
+        .url-container input {
             width: 100%;
             background: transparent;
             border: none;
@@ -161,72 +100,44 @@
             color: white;
             font-size: 14px;
         }
-        .url-bar input::placeholder {
-            color: #666;
-        }
         .go-btn {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            padding: 8px 24px;
-            border-radius: 12px;
+            background: #ff6b6b;
+            padding: 6px 20px;
+            border-radius: 8px;
+            cursor: pointer;
             color: white;
             font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
         }
-        .go-btn:hover {
-            transform: scale(1.02);
-            filter: brightness(1.05);
-        }
-        .content-area {
+        /* Область просмотра */
+        .browser-viewport {
+            flex: 1;
             background: white;
-            min-height: 550px;
             position: relative;
+            overflow: auto;
         }
-        #browser-viewport {
+        #page-frame {
             width: 100%;
-            height: 550px;
-            overflow-y: auto;
-            background: white;
-            padding: 20px;
+            height: 100%;
+            border: none;
         }
-        /* Стили для отображения HTML */
-        #browser-viewport a {
-            color: #0066cc;
-            text-decoration: none;
-        }
-        #browser-viewport a:hover {
-            text-decoration: underline;
-        }
-        #browser-viewport img {
-            max-width: 100%;
-            height: auto;
-        }
-        #browser-viewport h1 { font-size: 2em; margin: 0.67em 0; }
-        #browser-viewport h2 { font-size: 1.5em; margin: 0.83em 0; }
-        #browser-viewport h3 { font-size: 1.17em; margin: 1em 0; }
-        #browser-viewport p { margin: 1em 0; line-height: 1.5; }
-        #browser-viewport ul, #browser-viewport ol { margin: 1em 0; padding-left: 40px; }
-        #browser-viewport table { border-collapse: collapse; width: 100%; }
-        #browser-viewport th, #browser-viewport td { border: 1px solid #ddd; padding: 8px; }
-        .search-card {
-            background: white;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            border: 1px solid #e0e0e0;
-            transition: all 0.2s;
-        }
-        .search-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            border-color: #ff6b6b;
+        /* Затемнение при загрузке */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
         }
         .loader {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e0e0e0;
-            border-top: 4px solid #ff6b6b;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #ff6b6b;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -234,211 +145,225 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .loading-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(0,0,0,0.8);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
-        }
-        .status-bar {
-            margin-top: 16px;
-            text-align: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e1e2e;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #ff6b6b;
-            border-radius: 10px;
-        }
         .hidden {
             display: none !important;
         }
-        .icon-img {
-            width: 16px;
-            height: 16px;
+        /* Результаты поиска */
+        .search-container {
+            padding: 20px;
+            background: white;
+            height: 100%;
+            overflow-y: auto;
+        }
+        .search-result {
+            padding: 16px;
+            border-bottom: 1px solid #e0e0e0;
+            cursor: pointer;
+        }
+        .search-result:hover {
+            background: #f5f5f5;
+        }
+        .status-bar {
+            background: #1e1e2e;
+            padding: 4px 12px;
+            font-size: 11px;
+            color: #888;
+            display: flex;
+            justify-content: space-between;
         }
     </style>
 </head>
 <body>
-<div class="browser-container">
-    <!-- ШАПКА -->
-    <div class="browser-header">
-        <div class="logo-area">
-            <img src="https://img.icons8.com/fluency/48/traffic-light.png" class="logo-icon" alt="logo">
-            <span class="logo-text">BrToSb</span>
-            <span class="badge">Supabase Browser</span>
-        </div>
-        <button id="authBtn" class="auth-btn">
-            <img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px; height: 18px;" alt="user">
-            <span>Войти</span>
-        </button>
-    </div>
-
-    <!-- БРАУЗЕР -->
-    <div class="browser-frame">
-        <div class="tabs-bar" id="tabsContainer"></div>
-        
-        <div class="nav-bar">
-            <div class="nav-btn" id="backBtn">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/chevron-left.png" style="width: 18px; height: 18px;" alt="back">
-            </div>
-            <div class="nav-btn" id="forwardBtn">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/chevron-right.png" style="width: 18px; height: 18px;" alt="forward">
-            </div>
-            <div class="nav-btn" id="reloadBtn">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/refresh.png" style="width: 18px; height: 18px;" alt="reload">
-            </div>
-            <div class="nav-btn" id="homeBtn">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/home.png" style="width: 18px; height: 18px;" alt="home">
-            </div>
-            <div class="url-bar">
+<div class="browser-shell">
+    <!-- Верхняя панель -->
+    <div class="browser-toolbar">
+        <div class="tabs-row" id="tabsContainer"></div>
+        <div class="nav-controls">
+            <div class="nav-btn" id="backBtn">◀</div>
+            <div class="nav-btn" id="forwardBtn">▶</div>
+            <div class="nav-btn" id="reloadBtn">⟳</div>
+            <div class="nav-btn" id="homeBtn">🏠</div>
+            <div class="url-container">
                 <input type="text" id="urlInput" placeholder="Введите URL или поисковый запрос...">
             </div>
             <div class="go-btn" id="goBtn">Перейти</div>
-            <div class="nav-btn" id="bookmarkBtn">
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/bookmark-ribbon.png" style="width: 18px; height: 18px;" alt="bookmark">
-            </div>
-        </div>
-
-        <div class="content-area">
-            <div id="browser-viewport"></div>
-            <div id="searchResults" class="hidden" style="padding: 20px; background: white; min-height: 550px;"></div>
-            <div id="loadingOverlay" class="loading-overlay hidden">
-                <div class="loader"></div>
-            </div>
+            <div class="nav-btn" id="bookmarkBtn">⭐</div>
         </div>
     </div>
 
+    <!-- Область просмотра -->
+    <div class="browser-viewport" id="viewport">
+        <iframe id="page-frame" src="about:blank" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation"></iframe>
+        <div id="searchPanel" class="search-container hidden"></div>
+        <div id="loadingOverlay" class="loading-overlay hidden">
+            <div class="loader"></div>
+        </div>
+    </div>
+
+    <!-- Статус бар -->
     <div class="status-bar">
-        <span>📦 Supabase Storage</span>
-        <span id="statusBar">✅ Готов к работе</span>
+        <span>🔒 BrToSb на Supabase</span>
+        <span id="statusText">✅ Готов</span>
     </div>
 </div>
 
 <script>
-    // ============= НАСТРОЙКИ SUPABASE =============
+    // ============= НАСТРОЙКИ =============
     const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMzM1MzcsImV4cCI6MjA5MDYwOTUzN30.y5AL4XkUPzDl1jGDLfvKistXflOpuxcSoedzbhr6hgk';
     
-    let supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    window._supabaseClient = supabaseClient;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // ============= ГЛОБАЛЬНОЕ СОСТОЯНИЕ =============
+    // ============= СОСТОЯНИЕ =============
     let currentUser = null;
     let tabs = [];
     let activeTabId = null;
-    let tabCounter = 0;
+    let tabIdCounter = 0;
     
-    // ============= DOM ЭЛЕМЕНТЫ =============
-    const viewport = document.getElementById('browser-viewport');
+    // DOM элементы
+    const iframe = document.getElementById('page-frame');
     const urlInput = document.getElementById('urlInput');
-    const searchResultsDiv = document.getElementById('searchResults');
+    const searchPanel = document.getElementById('searchPanel');
     const loadingOverlay = document.getElementById('loadingOverlay');
-    const statusSpan = document.getElementById('statusBar');
+    const statusText = document.getElementById('statusText');
     const tabsContainer = document.getElementById('tabsContainer');
+    const viewport = document.getElementById('viewport');
     
-    function updateStatus(text, isError = false) {
-        statusSpan.innerHTML = `${isError ? '❌' : '✅'} ${text}`;
+    // ============= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =============
+    function setStatus(text, isError = false) {
+        statusText.innerHTML = isError ? `❌ ${text}` : `✅ ${text}`;
+        console.log(`[Status] ${text}`);
     }
     
-    // Отрисовка HTML в viewport с сохранением стилей
-    function renderHtml(html, baseUrl) {
-        viewport.innerHTML = '';
+    // Загрузка через Edge Function
+    async function fetchViaEdge(action, data) {
+        try {
+            const { data: result, error } = await supabase.functions.invoke('fetch-page', {
+                body: JSON.stringify({
+                    action: action,
+                    ...data,
+                    userId: currentUser?.id || 'anonymous'
+                })
+            });
+            if (error) throw error;
+            return result;
+        } catch (err) {
+            console.error('Edge error:', err);
+            return { success: false, error: err.message };
+        }
+    }
+    
+    // Загрузка страницы
+    async function loadPage(url, tabId) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (!tab) return;
         
-        // Создаем временный контейнер
-        const temp = document.createElement('div');
-        temp.innerHTML = html;
+        // Нормализация URL
+        let finalUrl = url.trim();
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://') && !finalUrl.includes('.')) {
+            // Это поисковый запрос
+            await performSearch(finalUrl, tabId);
+            return;
+        }
+        if (!finalUrl.startsWith('http')) {
+            finalUrl = 'https://' + finalUrl;
+        }
         
-        // Исправляем относительные ссылки
-        temp.querySelectorAll('a').forEach(link => {
-            const href = link.getAttribute('href');
-            if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#')) {
-                try {
-                    const absoluteUrl = new URL(href, baseUrl).href;
-                    link.setAttribute('href', absoluteUrl);
-                } catch(e) {}
-            }
-            link.setAttribute('target', '_self');
-            link.onclick = function(e) {
-                e.preventDefault();
-                const newUrl = this.getAttribute('href');
-                if (newUrl && newUrl !== '#') {
-                    loadPage(newUrl, activeTabId);
+        // Показываем загрузку
+        loadingOverlay.classList.remove('hidden');
+        searchPanel.classList.add('hidden');
+        iframe.classList.remove('hidden');
+        setStatus('Загрузка...');
+        
+        try {
+            const result = await fetchViaEdge('navigate', { url: finalUrl });
+            
+            if (result.success) {
+                // Загружаем в iframe
+                iframe.srcdoc = result.html;
+                
+                // Обновляем историю
+                if (tab.historyIndex < tab.history.length - 1) {
+                    tab.history = tab.history.slice(0, tab.historyIndex + 1);
                 }
-                return false;
-            };
-        });
-        
-        // Исправляем относительные пути для изображений
-        temp.querySelectorAll('img').forEach(img => {
-            const src = img.getAttribute('src');
-            if (src && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
-                try {
-                    const absoluteUrl = new URL(src, baseUrl).href;
-                    img.setAttribute('src', absoluteUrl);
-                } catch(e) {}
+                tab.history.push(result.url || finalUrl);
+                tab.historyIndex = tab.history.length - 1;
+                tab.url = result.url || finalUrl;
+                
+                urlInput.value = result.url || finalUrl;
+                setStatus(`Загружено: ${result.title || finalUrl}`);
+            } else if (result.searchResults) {
+                showSearchResults(result.searchResults, finalUrl, tabId);
+                setStatus(`🔍 Результаты поиска`);
+            } else {
+                throw new Error(result.error || 'Ошибка загрузки');
             }
-        });
-        
-        // Исправляем относительные пути для CSS
-        temp.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-            const href = link.getAttribute('href');
-            if (href && !href.startsWith('http://') && !href.startsWith('https://')) {
-                try {
-                    const absoluteUrl = new URL(href, baseUrl).href;
-                    link.setAttribute('href', absoluteUrl);
-                } catch(e) {}
-            }
-        });
-        
-        viewport.appendChild(temp);
+        } catch (err) {
+            iframe.srcdoc = `<html><body style="font-family: Arial; padding: 40px; text-align: center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p><p>Попробуйте другой URL</p></body></html>`;
+            setStatus(err.message, true);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
     }
     
-    function showSearchResults(results, query) {
-        viewport.classList.add('hidden');
-        searchResultsDiv.classList.remove('hidden');
+    // Поиск
+    async function performSearch(query, tabId) {
+        loadingOverlay.classList.remove('hidden');
+        setStatus('Поиск...');
+        
+        try {
+            const result = await fetchViaEdge('search', { query: query });
+            
+            if (result.success && result.results) {
+                showSearchResults(result.results, query, tabId);
+                setStatus(`Найдено ${result.results.length} результатов`);
+            } else {
+                showSearchResults([], query, tabId);
+                setStatus('Ничего не найдено');
+            }
+        } catch (err) {
+            showSearchResults([], query, tabId);
+            setStatus('Ошибка поиска', true);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+    
+    function showSearchResults(results, query, tabId) {
+        iframe.classList.add('hidden');
+        searchPanel.classList.remove('hidden');
         
         if (!results || results.length === 0) {
-            searchResultsDiv.innerHTML = `
-                <div style="text-align: center; padding: 60px 20px;">
-                    <img src="https://img.icons8.com/clouds/100/000000/search--v1.png" style="width: 80px; margin: 0 auto 20px;">
-                    <h3 style="font-size: 20px; color: #333; margin-bottom: 10px;">Ничего не найдено</h3>
-                    <p style="color: #666;">Попробуйте другой поисковый запрос</p>
+            searchPanel.innerHTML = `
+                <div style="text-align: center; padding: 60px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+                    <h3>Ничего не найдено по запросу "${escapeHtml(query)}"</h3>
+                    <p style="color: #666; margin-top: 10px;">Попробуйте другой запрос</p>
                 </div>
             `;
             return;
         }
         
-        searchResultsDiv.innerHTML = `
-            <div style="margin-bottom: 20px; padding: 12px; background: linear-gradient(135deg, #fff5f5, #fff0f0); border-radius: 12px;">
-                <span style="font-weight: bold;">🔍 Результаты поиска: "${escapeHtml(query)}"</span>
-                <span style="color: #666; margin-left: 10px;">(найдено ${results.length})</span>
+        searchPanel.innerHTML = `
+            <div style="margin-bottom: 20px; padding: 12px; background: #f0f0f0; border-radius: 8px;">
+                <strong>🔍 Результаты поиска: "${escapeHtml(query)}"</strong> (${results.length})
             </div>
             ${results.map(r => `
-                <div onclick="window.navigateToUrl('${r.url}')" class="search-card">
-                    <div style="display: flex; gap: 12px;">
-                        <img src="https://www.google.com/s2/favicons?domain=${r.url}" style="width: 24px; height: 24px;">
-                        <div>
-                            <div style="font-weight: bold; color: #667eea;">${escapeHtml(r.title || r.url)}</div>
-                            <div style="font-size: 13px; color: #888; margin-top: 4px;">${escapeHtml(r.url)}</div>
-                            <div style="font-size: 14px; color: #555; margin-top: 6px;">${escapeHtml(r.description || 'Нет описания')}</div>
-                        </div>
-                    </div>
+                <div class="search-result" onclick="window.navigateTo('${escapeHtml(r.url)}')">
+                    <div style="font-weight: bold; color: #1a73e8;">${escapeHtml(r.title || r.url)}</div>
+                    <div style="font-size: 12px; color: #0d652d; margin-top: 4px;">${escapeHtml(r.url)}</div>
+                    <div style="font-size: 13px; color: #555; margin-top: 6px;">${escapeHtml(r.description || '')}</div>
                 </div>
             `).join('')}
         `;
+        
+        // Обновляем URL вкладки
+        const tab = tabs.find(t => t.id === tabId);
+        if (tab) {
+            tab.url = `search:${query}`;
+            urlInput.value = query;
+            renderTabs();
+        }
     }
     
     function escapeHtml(str) {
@@ -451,78 +376,16 @@
         });
     }
     
-    // ============= ОСНОВНЫЕ ФУНКЦИИ =============
-    async function callEdgeFunction(action, data) {
-        try {
-            const { data: result, error } = await supabaseClient.functions.invoke('fetch-page', {
-                body: JSON.stringify({
-                    action: action,
-                    ...data,
-                    userId: currentUser?.id || 'anonymous'
-                })
-            });
-            if (error) throw error;
-            return result;
-        } catch (err) {
-            console.error('Edge Function error:', err);
-            updateStatus(err.message, true);
-            return { success: false, error: err.message };
-        }
-    }
-    
-    async function loadPage(url, tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-        
-        let finalUrl = url;
-        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
-            finalUrl = 'https://' + finalUrl;
-        }
-        
-        loadingOverlay.classList.remove('hidden');
-        searchResultsDiv.classList.add('hidden');
-        viewport.classList.remove('hidden');
-        updateStatus('Загрузка...');
-        
-        try {
-            const result = await callEdgeFunction('navigate', { url: finalUrl });
-            
-            if (result.success) {
-                renderHtml(result.html, result.url || finalUrl);
-                
-                if (tab.historyIndex < tab.history.length - 1) {
-                    tab.history = tab.history.slice(0, tab.historyIndex + 1);
-                }
-                tab.history.push(result.url || finalUrl);
-                tab.historyIndex = tab.history.length - 1;
-                tab.url = result.url || finalUrl;
-                
-                urlInput.value = result.url || finalUrl;
-                updateStatus(`Загружено: ${result.title || finalUrl}`);
-            } else if (result.searchResults) {
-                showSearchResults(result.searchResults, finalUrl);
-                updateStatus(`Сайт не найден, показаны результаты поиска`);
-            } else {
-                throw new Error(result.error || 'Неизвестная ошибка');
-            }
-        } catch (err) {
-            viewport.innerHTML = `<div style="padding: 40px; text-align: center; color: #666;"><h2>⚠️ Ошибка</h2><p>${err.message}</p></div>`;
-            updateStatus(`Ошибка: ${err.message}`, true);
-        } finally {
-            loadingOverlay.classList.add('hidden');
-        }
-    }
-    
-    window.navigateToUrl = function(url) {
-        searchResultsDiv.classList.add('hidden');
-        viewport.classList.remove('hidden');
+    window.navigateTo = function(url) {
         const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) loadPage(url, activeTabId);
+        if (tab) {
+            loadPage(url, activeTabId);
+        }
     };
     
     // ============= УПРАВЛЕНИЕ ВКЛАДКАМИ =============
-    function createNewTab(url = 'https://example.com') {
-        const newId = ++tabCounter;
+    function createTab(url = 'https://example.com') {
+        const newId = ++tabIdCounter;
         const newTab = {
             id: newId,
             url: url,
@@ -540,19 +403,25 @@
         activeTabId = tabId;
         const tab = tabs.find(t => t.id === tabId);
         if (tab) {
-            urlInput.value = tab.url;
+            urlInput.value = tab.url.startsWith('search:') ? tab.url.replace('search:', '') : tab.url;
             renderTabs();
-            loadPage(tab.url, tabId);
+            
+            if (tab.url.startsWith('search:')) {
+                const query = tab.url.replace('search:', '');
+                performSearch(query, tabId);
+            } else {
+                loadPage(tab.url, tabId);
+            }
         }
     }
     
     function closeTab(tabId) {
-        if (tabs.length === 1) return;
+        if (tabs.length <= 1) return;
         const index = tabs.findIndex(t => t.id === tabId);
         if (index !== -1) {
             tabs.splice(index, 1);
             if (activeTabId === tabId) {
-                const newActive = tabs[Math.min(index, tabs.length - 1)];
+                const newActive = tabs[Math.max(0, index - 1)];
                 if (newActive) switchToTab(newActive.id);
             }
             renderTabs();
@@ -564,17 +433,22 @@
         tabs.forEach(tab => {
             const tabDiv = document.createElement('div');
             tabDiv.className = `tab ${activeTabId === tab.id ? 'active' : ''}`;
-            let hostname = 'Новая';
-            try {
-                hostname = new URL(tab.url).hostname;
-            } catch(e) {}
+            let displayName = 'Новая';
+            if (tab.url.startsWith('search:')) {
+                displayName = `🔍 ${tab.url.replace('search:', '').substring(0, 20)}`;
+            } else {
+                try {
+                    displayName = new URL(tab.url).hostname || 'Новая';
+                } catch(e) {
+                    displayName = 'Новая';
+                }
+            }
             tabDiv.innerHTML = `
-                <img src="https://img.icons8.com/ios-glyphs/30/${activeTabId === tab.id ? 'ffffff' : 'aaaaaa'}/globe--v1.png" style="width: 14px; height: 14px;">
-                <span>${hostname.substring(0, 20)}</span>
-                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/delete-sign--v1.png" class="close-tab" style="width: 12px; height: 12px;">
+                <span>${displayName.substring(0, 25)}</span>
+                <span class="tab-close" data-id="${tab.id}">✕</span>
             `;
             tabDiv.onclick = (e) => {
-                if (e.target.classList.contains('close-tab')) {
+                if (e.target.classList.contains('tab-close')) {
                     e.stopPropagation();
                     closeTab(tab.id);
                 } else {
@@ -584,54 +458,25 @@
             tabsContainer.appendChild(tabDiv);
         });
         
-        const newTabBtn = document.createElement('div');
-        newTabBtn.className = 'new-tab-btn';
-        newTabBtn.innerHTML = `➕ Новая`;
-        newTabBtn.onclick = () => createNewTab();
-        tabsContainer.appendChild(newTabBtn);
+        const newBtn = document.createElement('div');
+        newBtn.className = 'new-tab';
+        newBtn.innerHTML = '+ Новая';
+        newBtn.onclick = () => createTab();
+        tabsContainer.appendChild(newBtn);
     }
-    
-    // ============= АВТОРИЗАЦИЯ =============
-    const authBtn = document.getElementById('authBtn');
-    authBtn.onclick = async () => {
-        if (currentUser) {
-            await supabaseClient.auth.signOut();
-            currentUser = null;
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;"><span>Войти</span>`;
-            updateStatus('Вы вышли из аккаунта');
-        } else {
-            const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'github' });
-            if (error) alert('Ошибка: ' + error.message);
-        }
-    };
-    
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            currentUser = session.user;
-            const userName = session.user.email.split('@')[0];
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;"><span>${userName}</span>`;
-            updateStatus(`Авторизован как ${session.user.email}`);
-        }
-    });
     
     // ============= НАВИГАЦИЯ =============
     document.getElementById('goBtn').onclick = () => {
-        let input = urlInput.value.trim();
-        if (input) loadPage(input, activeTabId);
+        const input = urlInput.value.trim();
+        if (input) {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) loadPage(input, activeTabId);
+        }
     };
     
     urlInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('goBtn').click();
     });
-    
-    document.getElementById('reloadBtn').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) loadPage(tab.url, activeTabId);
-    };
-    
-    document.getElementById('homeBtn').onclick = () => {
-        loadPage('https://example.com', activeTabId);
-    };
     
     document.getElementById('backBtn').onclick = () => {
         const tab = tabs.find(t => t.id === activeTabId);
@@ -649,25 +494,64 @@
         }
     };
     
-    document.getElementById('bookmarkBtn').onclick = async () => {
+    document.getElementById('reloadBtn').onclick = () => {
+        const tab = tabs.find(t => t.id === activeTabId);
+        if (tab && !tab.url.startsWith('search:')) {
+            loadPage(tab.url, activeTabId);
+        }
+    };
+    
+    document.getElementById('homeBtn').onclick = () => {
+        loadPage('https://example.com', activeTabId);
+    };
+    
+    // ============= АВТОРИЗАЦИЯ =============
+    const bookmarkBtn = document.getElementById('bookmarkBtn');
+    bookmarkBtn.onclick = async () => {
         const tab = tabs.find(t => t.id === activeTabId);
         if (!currentUser) {
-            alert('Войдите в аккаунт');
+            alert('Войдите через GitHub, чтобы добавить закладку');
             return;
         }
-        if (tab) {
-            await supabaseClient.from('bookmarks').insert({
+        if (tab && !tab.url.startsWith('search:')) {
+            await supabase.from('bookmarks').insert({
                 user_id: currentUser.id,
                 url: tab.url,
                 title: tab.url
             });
-            updateStatus('⭐ Добавлено в закладки');
-            setTimeout(() => updateStatus('Готов к работе'), 2000);
+            setStatus('⭐ Добавлено в закладки');
+            setTimeout(() => setStatus('Готов'), 2000);
         }
     };
     
+    // Кнопка авторизации в шапке (добавим простую)
+    const authSection = document.createElement('div');
+    authSection.style.cssText = 'position: fixed; top: 10px; right: 20px; z-index: 10000;';
+    authSection.innerHTML = `<button id="simpleAuthBtn" style="background: #ff6b6b; border: none; padding: 6px 12px; border-radius: 8px; color: white; cursor: pointer;">🔑 Войти</button>`;
+    document.body.appendChild(authSection);
+    
+    document.getElementById('simpleAuthBtn').onclick = async () => {
+        if (currentUser) {
+            await supabase.auth.signOut();
+            currentUser = null;
+            document.getElementById('simpleAuthBtn').innerHTML = '🔑 Войти';
+            setStatus('Вы вышли');
+        } else {
+            const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+            if (error) alert('Ошибка: ' + error.message);
+        }
+    };
+    
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            document.getElementById('simpleAuthBtn').innerHTML = `👤 ${session.user.email.split('@')[0]}`;
+            setStatus(`Авторизован как ${session.user.email}`);
+        }
+    });
+    
     // ============= ЗАПУСК =============
-    createNewTab('https://example.com');
+    createTab('https://example.com');
 </script>
 </body>
 </html>
