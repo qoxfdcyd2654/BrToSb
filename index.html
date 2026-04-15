@@ -78,11 +78,11 @@
             transform: scale(1.02);
             filter: brightness(1.05);
         }
-        #browser-canvas {
+        #browser-iframe {
             background: white;
             width: 100%;
             height: 550px;
-            cursor: pointer;
+            border: none;
         }
         .search-card {
             background: white;
@@ -122,12 +122,6 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #ee5a24;
         }
-        .icon-img {
-            width: 20px;
-            height: 20px;
-            display: inline-block;
-            vertical-align: middle;
-        }
     </style>
 </head>
 <body class="p-4">
@@ -153,7 +147,7 @@
         </div>
 
         <!-- ПАНЕЛЬ НАВИГАЦИИ -->
-        <div class="p-3 bg-#1e1e2e border-t border-#2a2a3e">
+        <div class="p-3 border-t border-[#2a2a3e]">
             <div class="flex gap-2 items-center">
                 <div class="nav-btn" id="backBtn">
                     <img src="https://img.icons8.com/ios-glyphs/30/ffffff/chevron-left.png" class="w-5 h-5" alt="back">
@@ -179,9 +173,9 @@
             </div>
         </div>
 
-        <!-- ОБЛАСТЬ КОНТЕНТА -->
+        <!-- ОБЛАСТЬ КОНТЕНТА - ТЕПЕРЬ IFRAME -->
         <div id="contentArea" class="relative bg-white" style="min-height: 550px">
-            <canvas id="browser-canvas" width="1000" height="550" style="width: 100%; height: 550px"></canvas>
+            <iframe id="browser-iframe" src="about:blank" style="width: 100%; height: 550px; border: none; background: white;"></iframe>
             <div id="searchResults" class="hidden p-6 overflow-y-auto bg-white" style="max-height: 550px"></div>
             <div id="loadingOverlay" class="hidden absolute inset-0 bg-black/80 flex items-center justify-center z-50">
                 <div class="text-center">
@@ -210,7 +204,6 @@
     const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMzM1MzcsImV4cCI6MjA5MDYwOTUzN30.y5AL4XkUPzDl1jGDLfvKistXflOpuxcSoedzbhr6hgk';
     
-    // Проверяем, не создан ли уже клиент
     let supabaseClient;
     if (window._supabaseClient) {
         supabaseClient = window._supabaseClient;
@@ -226,8 +219,7 @@
     let tabCounter = 0;
     
     // ============= DOM ЭЛЕМЕНТЫ =============
-    const canvas = document.getElementById('browser-canvas');
-    const ctx = canvas.getContext('2d');
+    const iframe = document.getElementById('browser-iframe');
     const urlInput = document.getElementById('urlInput');
     const searchResultsDiv = document.getElementById('searchResults');
     const loadingOverlay = document.getElementById('loadingOverlay');
@@ -244,60 +236,9 @@
         }
     }
     
-    // Рендер HTML на canvas
-    function renderToCanvas(html, title) {
-        if (!ctx) return;
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-                      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-                      .replace(/<[^>]+>/g, ' ')
-                      .replace(/\s+/g, ' ')
-                      .trim();
-        
-        ctx.fillStyle = '#ff6b6b';
-        ctx.fillRect(0, 0, canvas.width, 50);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 18px "Segoe UI", Arial';
-        ctx.fillText(title || 'BrToSb Browser', 20, 33);
-        
-        let words = text.split(' ');
-        let line = '';
-        let y = 80;
-        ctx.fillStyle = '#333';
-        ctx.font = '14px "Segoe UI", Arial';
-        
-        for (let word of words.slice(0, 800)) {
-            let testLine = line + word + ' ';
-            let metrics = ctx.measureText(testLine);
-            if (metrics.width > canvas.width - 40 && line.length > 0) {
-                ctx.fillText(line, 20, y);
-                line = word + ' ';
-                y += 24;
-                if (y > canvas.height - 50) break;
-            } else {
-                line = testLine;
-            }
-        }
-        if (line && y < canvas.height - 50) ctx.fillText(line, 20, y);
-    }
-    
-    function renderError(message) {
-        if (!ctx) return;
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.fillStyle = '#ff6b6b';
-        ctx.font = 'bold 20px "Segoe UI", Arial';
-        ctx.fillText('⚠️ Ошибка', 20, 60);
-        ctx.fillStyle = '#666';
-        ctx.font = '14px "Segoe UI", Arial';
-        ctx.fillText(message, 20, 100);
-    }
-    
     function showSearchResults(results, query) {
         if (!searchResultsDiv) return;
-        canvas.classList.add('hidden');
+        iframe.classList.add('hidden');
         searchResultsDiv.classList.remove('hidden');
         
         if (!results || results.length === 0) {
@@ -314,7 +255,7 @@
         searchResultsDiv.innerHTML = `
             <div class="mb-4 p-3 bg-gradient-to-r from-red-50 to-pink-50 rounded-xl flex items-center gap-2">
                 <img src="https://img.icons8.com/ios-glyphs/30/ff6b6b/search--v1.png" class="w-5 h-5" alt="search">
-                <span class="font-semibold text-gray-800">Результаты поиска: "${query}"</span>
+                <span class="font-semibold text-gray-800">Результаты поиска: "${escapeHtml(query)}"</span>
                 <span class="text-sm text-gray-500">(найдено ${results.length})</span>
             </div>
             ${results.map(r => `
@@ -334,7 +275,7 @@
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
+        return String(str).replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
@@ -367,14 +308,15 @@
         
         loadingOverlay.classList.remove('hidden');
         searchResultsDiv.classList.add('hidden');
-        canvas.classList.remove('hidden');
+        iframe.classList.remove('hidden');
         updateStatus('Загрузка...');
         
         try {
             const result = await callEdgeFunction('navigate', { url: url });
             
             if (result.success) {
-                renderToCanvas(result.html, result.title);
+                // Загружаем HTML в iframe с полной поддержкой CSS/JS
+                iframe.srcdoc = result.html;
                 
                 if (tab.historyIndex < tab.history.length - 1) {
                     tab.history = tab.history.slice(0, tab.historyIndex + 1);
@@ -392,7 +334,7 @@
                 throw new Error(result.error || 'Неизвестная ошибка');
             }
         } catch (err) {
-            renderError(err.message);
+            iframe.srcdoc = `<html><body style="font-family: Arial; padding: 20px;"><h1 style="color: red;">⚠️ Ошибка</h1><p>${err.message}</p></body></html>`;
             updateStatus(`Ошибка: ${err.message}`, true);
         } finally {
             loadingOverlay.classList.add('hidden');
@@ -401,7 +343,7 @@
     
     window.navigateToUrl = function(url) {
         if (searchResultsDiv) searchResultsDiv.classList.add('hidden');
-        if (canvas) canvas.classList.remove('hidden');
+        if (iframe) iframe.classList.remove('hidden');
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab) loadPage(url, activeTabId);
     };
@@ -509,8 +451,7 @@
     if (goBtn) {
         goBtn.onclick = () => {
             let input = urlInput ? urlInput.value.trim() : '';
-            const tab = tabs.find(t => t.id === activeTabId);
-            if (tab && input) loadPage(input, activeTabId);
+            if (input) loadPage(input, activeTabId);
         };
     }
     
@@ -531,8 +472,7 @@
     const homeBtn = document.getElementById('homeBtn');
     if (homeBtn) {
         homeBtn.onclick = () => {
-            const tab = tabs.find(t => t.id === activeTabId);
-            if (tab) loadPage('https://google.com', activeTabId);
+            loadPage('https://google.com', activeTabId);
         };
     }
     
@@ -580,20 +520,6 @@
     
     // ============= ЗАПУСК =============
     createNewTab('https://google.com');
-    
-    function resizeCanvas() {
-        if (canvas && canvas.parentElement) {
-            const rect = canvas.parentElement.getBoundingClientRect();
-            canvas.width = Math.min(rect.width - 32, 1200);
-            canvas.height = 550;
-            const tab = tabs.find(t => t.id === activeTabId);
-            if (tab && tab.url) {
-                loadPage(tab.url, activeTabId);
-            }
-        }
-    }
-    window.addEventListener('resize', resizeCanvas);
-    setTimeout(resizeCanvas, 100);
 </script>
 </body>
 </html>
