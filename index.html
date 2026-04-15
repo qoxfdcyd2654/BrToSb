@@ -72,6 +72,7 @@
         .go-btn {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
             transition: all 0.2s;
+            cursor: pointer;
         }
         .go-btn:hover {
             transform: scale(1.02);
@@ -116,7 +117,7 @@
         }
         ::-webkit-scrollbar-thumb {
             background: #ff6b6b;
-            border-radius: 4px;
+            border-radius: 10px;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: #ee5a24;
@@ -149,7 +150,6 @@
     <div class="browser-frame">
         <!-- ВКЛАДКИ -->
         <div class="flex items-center gap-1 px-3 pt-3 overflow-x-auto" id="tabsContainer">
-            <!-- Вкладки будут добавляться сюда -->
         </div>
 
         <!-- ПАНЕЛЬ НАВИГАЦИИ -->
@@ -170,7 +170,7 @@
                 <div class="flex-1 url-bar rounded-xl px-3 py-2">
                     <input type="text" id="urlInput" placeholder="Введите URL или поисковый запрос..." class="w-full outline-none text-sm">
                 </div>
-                <div class="go-btn px-6 py-2 rounded-xl text-white font-semibold cursor-pointer text-center" id="goBtn">
+                <div class="go-btn px-6 py-2 rounded-xl text-white font-semibold text-center" id="goBtn">
                     Перейти
                 </div>
                 <div class="nav-btn" id="bookmarkBtn">
@@ -187,7 +187,6 @@
                 <div class="text-center">
                     <div class="loader mx-auto mb-4"></div>
                     <p class="text-white">Загрузка через Supabase...</p>
-                    <img src="https://media.tenor.com/5o-9v6l7Vp8AAAAi/loading.gif" class="w-12 mx-auto mt-3">
                 </div>
             </div>
         </div>
@@ -211,7 +210,14 @@
     const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMzM1MzcsImV4cCI6MjA5MDYwOTUzN30.y5AL4XkUPzDl1jGDLfvKistXflOpuxcSoedzbhr6hgk';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Проверяем, не создан ли уже клиент
+    let supabaseClient;
+    if (window._supabaseClient) {
+        supabaseClient = window._supabaseClient;
+    } else {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window._supabaseClient = supabaseClient;
+    }
     
     // ============= ГЛОБАЛЬНОЕ СОСТОЯНИЕ =============
     let currentUser = null;
@@ -230,32 +236,32 @@
     
     // ============= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =============
     function updateStatus(text, isError = false) {
-        statusBar.innerHTML = `
-            <img src="https://img.icons8.com/ios-glyphs/30/${isError ? 'ff6b6b' : 'ffffff'}/checkmark--v1.png" class="w-4 h-4" alt="status">
-            ${text}
-        `;
+        if (statusBar) {
+            statusBar.innerHTML = `
+                <img src="https://img.icons8.com/ios-glyphs/30/${isError ? 'ff6b6b' : 'ffffff'}/checkmark--v1.png" class="w-4 h-4" alt="status">
+                ${text}
+            `;
+        }
     }
     
     // Рендер HTML на canvas
     function renderToCanvas(html, title) {
+        if (!ctx) return;
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        // Извлекаем текст
         let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
                       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
                       .replace(/<[^>]+>/g, ' ')
                       .replace(/\s+/g, ' ')
                       .trim();
         
-        // Заголовок
         ctx.fillStyle = '#ff6b6b';
         ctx.fillRect(0, 0, canvas.width, 50);
         ctx.fillStyle = 'white';
         ctx.font = 'bold 18px "Segoe UI", Arial';
         ctx.fillText(title || 'BrToSb Browser', 20, 33);
         
-        // Контент
         let words = text.split(' ');
         let line = '';
         let y = 80;
@@ -278,6 +284,7 @@
     }
     
     function renderError(message) {
+        if (!ctx) return;
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#ff6b6b';
@@ -289,6 +296,7 @@
     }
     
     function showSearchResults(results, query) {
+        if (!searchResultsDiv) return;
         canvas.classList.add('hidden');
         searchResultsDiv.classList.remove('hidden');
         
@@ -314,9 +322,9 @@
                     <div class="flex items-start gap-3">
                         <img src="https://www.google.com/s2/favicons?domain=${r.url}" class="w-6 h-6 mt-1" alt="icon">
                         <div class="flex-1">
-                            <div class="font-bold text-indigo-600">${r.title || r.url}</div>
-                            <div class="text-sm text-gray-500 mt-1">${r.url}</div>
-                            <div class="text-sm text-gray-600 mt-1">${r.description || 'Нет описания'}</div>
+                            <div class="font-bold text-indigo-600">${escapeHtml(r.title || r.url)}</div>
+                            <div class="text-sm text-gray-500 mt-1">${escapeHtml(r.url)}</div>
+                            <div class="text-sm text-gray-600 mt-1">${escapeHtml(r.description || 'Нет описания')}</div>
                         </div>
                     </div>
                 </div>
@@ -324,10 +332,20 @@
         `;
     }
     
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+    
     // ============= ОСНОВНЫЕ ФУНКЦИИ БРАУЗЕРА =============
     async function callEdgeFunction(action, data) {
         try {
-            const { data: result, error } = await supabase.functions.invoke('fetch-page', {
+            const { data: result, error } = await supabaseClient.functions.invoke('fetch-page', {
                 body: JSON.stringify({
                     action: action,
                     ...data,
@@ -358,7 +376,6 @@
             if (result.success) {
                 renderToCanvas(result.html, result.title);
                 
-                // Обновляем историю
                 if (tab.historyIndex < tab.history.length - 1) {
                     tab.history = tab.history.slice(0, tab.historyIndex + 1);
                 }
@@ -366,7 +383,7 @@
                 tab.historyIndex = tab.history.length - 1;
                 tab.url = result.url || url;
                 
-                urlInput.value = result.url || url;
+                if (urlInput) urlInput.value = result.url || url;
                 updateStatus(`Загружено: ${result.title}`);
             } else if (result.searchResults) {
                 showSearchResults(result.searchResults, url);
@@ -382,12 +399,12 @@
         }
     }
     
-    function navigateToUrl(url) {
-        searchResultsDiv.classList.add('hidden');
-        canvas.classList.remove('hidden');
+    window.navigateToUrl = function(url) {
+        if (searchResultsDiv) searchResultsDiv.classList.add('hidden');
+        if (canvas) canvas.classList.remove('hidden');
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab) loadPage(url, activeTabId);
-    }
+    };
     
     // ============= УПРАВЛЕНИЕ ВКЛАДКАМИ =============
     function createNewTab(url = 'https://google.com') {
@@ -408,7 +425,7 @@
     function switchToTab(tabId) {
         activeTabId = tabId;
         const tab = tabs.find(t => t.id === tabId);
-        if (tab) {
+        if (tab && urlInput) {
             urlInput.value = tab.url;
             renderTabs();
             loadPage(tab.url, tabId);
@@ -416,10 +433,7 @@
     }
     
     function closeTab(tabId) {
-        if (tabs.length === 1) {
-            // Не закрываем последнюю вкладку
-            return;
-        }
+        if (tabs.length === 1) return;
         const index = tabs.findIndex(t => t.id === tabId);
         if (index !== -1) {
             tabs.splice(index, 1);
@@ -432,6 +446,7 @@
     }
     
     function renderTabs() {
+        if (!tabsContainer) return;
         tabsContainer.innerHTML = '';
         tabs.forEach(tab => {
             const tabDiv = document.createElement('div');
@@ -452,7 +467,6 @@
             tabsContainer.appendChild(tabDiv);
         });
         
-        // Кнопка новой вкладки
         const newTabBtn = document.createElement('div');
         newTabBtn.className = 'tab px-3 py-2 rounded-t-lg text-sm flex items-center gap-1';
         newTabBtn.innerHTML = `
@@ -465,96 +479,117 @@
     
     // ============= АВТОРИЗАЦИЯ =============
     const authBtn = document.getElementById('authBtn');
-    authBtn.onclick = async () => {
-        if (currentUser) {
-            await supabase.auth.signOut();
-            currentUser = null;
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" class="w-5 h-5" alt="user"><span>Войти</span>`;
-            updateStatus('Вы вышли из аккаунта');
-        } else {
-            const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
-            if (error) alert('Ошибка: ' + error.message);
-        }
-    };
+    if (authBtn) {
+        authBtn.onclick = async () => {
+            if (currentUser) {
+                await supabaseClient.auth.signOut();
+                currentUser = null;
+                authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" class="w-5 h-5" alt="user"><span>Войти</span>`;
+                updateStatus('Вы вышли из аккаунта');
+            } else {
+                const { error } = await supabaseClient.auth.signInWithOAuth({ provider: 'github' });
+                if (error) alert('Ошибка: ' + error.message);
+            }
+        };
+    }
     
-    supabase.auth.onAuthStateChange((event, session) => {
+    supabaseClient.auth.onAuthStateChange((event, session) => {
         if (session) {
             currentUser = session.user;
             const userName = session.user.email.split('@')[0];
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" class="w-5 h-5" alt="user"><span>${userName}</span>`;
+            if (authBtn) {
+                authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" class="w-5 h-5" alt="user"><span>${userName}</span>`;
+            }
             updateStatus(`Авторизован как ${session.user.email}`);
         }
     });
     
     // ============= НАВИГАЦИЯ =============
-    document.getElementById('goBtn').onclick = () => {
-        let input = urlInput.value.trim();
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) loadPage(input, activeTabId);
-    };
+    const goBtn = document.getElementById('goBtn');
+    if (goBtn) {
+        goBtn.onclick = () => {
+            let input = urlInput ? urlInput.value.trim() : '';
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && input) loadPage(input, activeTabId);
+        };
+    }
     
-    urlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('goBtn').click();
-    });
+    if (urlInput) {
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && goBtn) goBtn.click();
+        });
+    }
     
-    document.getElementById('reloadBtn').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) loadPage(tab.url, activeTabId);
-    };
+    const reloadBtn = document.getElementById('reloadBtn');
+    if (reloadBtn) {
+        reloadBtn.onclick = () => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) loadPage(tab.url, activeTabId);
+        };
+    }
     
-    document.getElementById('homeBtn').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) loadPage('https://google.com', activeTabId);
-    };
+    const homeBtn = document.getElementById('homeBtn');
+    if (homeBtn) {
+        homeBtn.onclick = () => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab) loadPage('https://google.com', activeTabId);
+        };
+    }
     
-    document.getElementById('backBtn').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab && tab.historyIndex > 0) {
-            tab.historyIndex--;
-            loadPage(tab.history[tab.historyIndex], activeTabId);
-        }
-    };
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+        backBtn.onclick = () => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.historyIndex > 0) {
+                tab.historyIndex--;
+                loadPage(tab.history[tab.historyIndex], activeTabId);
+            }
+        };
+    }
     
-    document.getElementById('forwardBtn').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab && tab.historyIndex < tab.history.length - 1) {
-            tab.historyIndex++;
-            loadPage(tab.history[tab.historyIndex], activeTabId);
-        }
-    };
+    const forwardBtn = document.getElementById('forwardBtn');
+    if (forwardBtn) {
+        forwardBtn.onclick = () => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.historyIndex < tab.history.length - 1) {
+                tab.historyIndex++;
+                loadPage(tab.history[tab.historyIndex], activeTabId);
+            }
+        };
+    }
     
-    document.getElementById('bookmarkBtn').onclick = async () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (!currentUser) {
-            alert('Войдите в аккаунт, чтобы добавлять закладки');
-            return;
-        }
-        if (tab) {
-            await supabase.from('bookmarks').insert({
-                user_id: currentUser.id,
-                url: tab.url,
-                title: tab.url
-            });
-            updateStatus('⭐ Добавлено в закладки');
-            setTimeout(() => updateStatus('Готов к работе'), 2000);
-        }
-    };
-    
-    // Глобальная функция для навигации из поиска
-    window.navigateToUrl = navigateToUrl;
+    const bookmarkBtn = document.getElementById('bookmarkBtn');
+    if (bookmarkBtn) {
+        bookmarkBtn.onclick = async () => {
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (!currentUser) {
+                alert('Войдите в аккаунт, чтобы добавлять закладки');
+                return;
+            }
+            if (tab) {
+                await supabaseClient.from('bookmarks').insert({
+                    user_id: currentUser.id,
+                    url: tab.url,
+                    title: tab.url
+                });
+                updateStatus('⭐ Добавлено в закладки');
+                setTimeout(() => updateStatus('Готов к работе'), 2000);
+            }
+        };
+    }
     
     // ============= ЗАПУСК =============
-    // Создаем первую вкладку
     createNewTab('https://google.com');
     
-    // Адаптация canvas
     function resizeCanvas() {
-        const rect = canvas.parentElement.getBoundingClientRect();
-        canvas.width = Math.min(rect.width - 32, 1200);
-        canvas.height = 550;
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab && tab.url) {
-            loadPage(tab.url, activeTabId);
+        if (canvas && canvas.parentElement) {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = Math.min(rect.width - 32, 1200);
+            canvas.height = 550;
+            const tab = tabs.find(t => t.id === activeTabId);
+            if (tab && tab.url) {
+                loadPage(tab.url, activeTabId);
+            }
         }
     }
     window.addEventListener('resize', resizeCanvas);
