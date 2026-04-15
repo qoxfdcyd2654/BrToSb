@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BrToSb — Браузер на Supabase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .browser-frame { background: white; border-radius: 12px; overflow: hidden; }
+        .url-bar { border: 2px solid #e2e8f0; transition: all 0.2s; }
+        .url-bar:focus-within { border-color: #667eea; box-shadow: 0 0 0 3px rgba(102,126,234,0.1); }
+        .tab { transition: all 0.2s; cursor: pointer; }
+        .tab:hover { background: #f7fafc; }
+        .tab.active { background: #667eea; color: white; }
+        #browser-canvas { background: white; width: 100%; height: 500px; border-radius: 8px; }
+        .loader { border: 3px solid #f3f3f3; border-top: 3px solid #667eea; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-4">
+    <div class="max-w-6xl mx-auto">
+        <!-- Шапка -->
+        <div class="flex justify-between items-center mb-4 text-white">
+            <div class="flex items-center gap-2">
+                <span class="text-2xl">🌐</span>
+                <h1 class="text-2xl font-bold">BrToSb Browser</h1>
+                <span class="text-xs bg-white/20 px-2 py-1 rounded">Supabase Powered</span>
+            </div>
+            <button id="authBtn" class="bg-white/20 px-4 py-2 rounded-lg hover:bg-white/30 transition">
+                Войти
+            </button>
+        </div>
+
+        <!-- Браузер -->
+        <div class="browser-frame shadow-xl">
+            <!-- Вкладки -->
+            <div class="bg-gray-100 px-4 pt-2 flex gap-1 overflow-x-auto" id="tabsContainer">
+                <div class="tab active px-4 py-2 rounded-t-lg text-sm font-medium" data-tab="0">
+                    Новая вкладка
+                </div>
+                <button id="newTabBtn" class="px-3 py-2 text-gray-600 hover:text-gray-800">➕</button>
+            </div>
+
+            <!-- Адресная строка -->
+            <div class="p-4 bg-white border-b">
+                <div class="flex gap-2">
+                    <button id="backBtn" class="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200">◀</button>
+                    <button id="forwardBtn" class="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200">▶</button>
+                    <button id="reloadBtn" class="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200">⟳</button>
+                    <div class="flex-1 url-bar rounded-lg px-3 py-2 bg-gray-50">
+                        <input type="text" id="urlInput" placeholder="Введите URL или поисковый запрос..." 
+                               class="w-full outline-none bg-transparent">
+                    </div>
+                    <button id="goBtn" class="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:opacity-90">
+                        Перейти
+                    </button>
+                    <button id="bookmarkBtn" class="px-3 py-2 bg-gray-100 rounded hover:bg-gray-200">⭐</button>
+                </div>
+            </div>
+
+            <!-- Контент -->
+            <div id="contentArea" class="relative">
+                <canvas id="browser-canvas" width="1000" height="500"></canvas>
+                <div id="searchResults" class="hidden p-4 max-h-[500px] overflow-y-auto"></div>
+                <div id="loadingOverlay" class="hidden absolute inset-0 bg-white/90 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="loader mx-auto mb-3"></div>
+                        <p class="text-gray-600">Загрузка через Supabase Edge Function...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Статус -->
+        <div class="mt-4 text-center text-white text-sm" id="statusBar">
+            ✅ Готов к работе
+        </div>
+    </div>
+
+    <script>
+        // ============= НАСТРОЙКИ SUPABASE =============
+        // ЗАМЕНИ НА СВОИ ДАННЫЕ ИЗ PROJECT SETTINGS!
+        const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQyMjU2MDAsImV4cCI6MjA0OTgwMTYwMH0.ВАШ_КЛЮЧ'; // ВСТАВЬ СВОЙ АНОН КЛЮЧ!
+        
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // ============= СОСТОЯНИЕ =============
+        let currentUser = null;
+        let tabs = [{ id: 0, url: 'https://google.com', history: [], historyIndex: -1 }];
+        let activeTab = 0;
+        
+        // DOM элементы
+        const canvas = document.getElementById('browser-canvas');
+        const ctx = canvas.getContext('2d');
+        const urlInput = document.getElementById('urlInput');
+        const searchResultsDiv = document.getElementById('searchResults');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const statusBar = document.getElementById('statusBar');
+        
+        // ============= ФУНКЦИИ =============
+        
+        // Вызов Edge Function
+        async function callEdgeFunction(action, data) {
+            try {
+                const { data: result, error } = await supabase.functions.invoke('fetch-page', {
+                    body: JSON.stringify({
+                        action: action,
+                        ...data,
+                        userId: currentUser?.id || 'anonymous'
+                    })
+                });
+                
+                if (error) throw error;
+                return result;
+            } catch (err) {
+                console.error('Edge Function error:', err);
+                statusBar.innerHTML = `❌ Ошибка: ${err.message}`;
+                return { success: false, error: err.message };
+            }
+        }
+        
+        // Загрузка страницы
+        async function loadPage(url, tabId) {
+            const tab = tabs.find(t => t.id === tabId);
+            if (!tab) return;
+            
+            loadingOverlay.classList.remove('hidden');
+            searchResultsDiv.classList.add('hidden');
+            canvas.classList.remove('hidden');
+            statusBar.innerHTML = '🔄 Загрузка через Edge Function...';
+            
+            try {
+                const result = await callEdgeFunction('navigate', { url: url });
+                
+                if (result.success) {
+                    // Рендерим HTML на canvas
+                    renderToCanvas(result.html, result.title);
+                    
+                    // Обновляем историю
+                    if (tab.historyIndex < tab.history.length - 1) {
+                        tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                    }
+                    tab.history.push(result.url || url);
+                    tab.historyIndex = tab.history.length - 1;
+                    tab.url = result.url || url;
+                    
+                    urlInput.value = result.url || url;
+                    statusBar.innerHTML = `✅ Загружено: ${result.title} (${result.fromCache ? 'из кэша' : 'с сайта'})`;
+                } else if (result.searchResults) {
+                    // Показываем результаты поиска
+                    showSearchResults(result.searchResults, url);
+                    statusBar.innerHTML = `🔍 Сайт не найден. Показаны результаты поиска по "${url}"`;
+                } else {
+                    throw new Error(result.error || 'Неизвестная ошибка');
+                }
+            } catch (err) {
+                console.error('Load error:', err);
+                renderError(err.message);
+                statusBar.innerHTML = `❌ Ошибка: ${err.message}`;
+            } finally {
+                loadingOverlay.classList.add('hidden');
+            }
+        }
+        
+        // Рендер HTML на canvas
+        function renderToCanvas(html, title) {
+            // Очищаем canvas
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Извлекаем текст
+            let text = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+                          .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+                          .replace(/<[^>]+>/g, ' ')
+                          .replace(/\s+/g, ' ')
+                          .trim();
+            
+            // Рисуем заголовок
+            ctx.fillStyle = '#667eea';
+            ctx.fillRect(0, 0, canvas.width, 40);
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Arial';
+            ctx.fillText(title || 'BrToSb Browser', 15, 27);
+            
+            // Рисуем контент
+            let words = text.split(' ');
+            let line = '';
+            let y = 70;
+            ctx.fillStyle = '#333';
+            ctx.font = '14px Arial';
+            
+            for (let word of words.slice(0, 500)) {
+                let testLine = line + word + ' ';
+                let metrics = ctx.measureText(testLine);
+                if (metrics.width > canvas.width - 40 && line.length > 0) {
+                    ctx.fillText(line, 20, y);
+                    line = word + ' ';
+                    y += 22;
+                    if (y > canvas.height - 50) break;
+                } else {
+                    line = testLine;
+                }
+            }
+            if (line && y < canvas.height - 50) ctx.fillText(line, 20, y);
+        }
+        
+        function renderError(message) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ef4444';
+            ctx.font = 'bold 20px Arial';
+            ctx.fillText('❌ Ошибка', 20, 60);
+            ctx.fillStyle = '#666';
+            ctx.font = '14px Arial';
+            ctx.fillText(message, 20, 100);
+        }
+        
+        function showSearchResults(results, query) {
+            canvas.classList.add('hidden');
+            searchResultsDiv.classList.remove('hidden');
+            
+            if (!results || results.length === 0) {
+                searchResultsDiv.innerHTML = `
+                    <div class="text-center p-8">
+                        <div class="text-6xl mb-4">🔍</div>
+                        <h3 class="text-xl font-bold mb-2">Ничего не найдено</h3>
+                        <p class="text-gray-600">Попробуйте другой поисковый запрос</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            searchResultsDiv.innerHTML = `
+                <div class="mb-4 p-3 bg-indigo-50 rounded-lg">
+                    <span class="font-semibold">🔍 Результаты поиска: "${query}"</span>
+                    <span class="text-sm text-gray-600 ml-2">(найдено ${results.length})</span>
+                </div>
+                ${results.map(r => `
+                    <div onclick="navigateTo('${r.url}')" class="p-4 border rounded-lg mb-3 hover:bg-gray-50 cursor-pointer transition">
+                        <div class="font-semibold text-indigo-600">${r.title || r.url}</div>
+                        <div class="text-sm text-gray-500 mt-1">${r.url}</div>
+                        <div class="text-sm text-gray-600 mt-1">${r.description || 'Нет описания'}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        function navigateTo(url) {
+            searchResultsDiv.classList.add('hidden');
+            canvas.classList.remove('hidden');
+            loadPage(url, activeTab);
+        }
+        
+        // ============= СОБЫТИЯ =============
+        document.getElementById('goBtn').onclick = () => {
+            let input = urlInput.value.trim();
+            if (input.match(/^[a-z0-9-]+\.[a-z]{2,}/i) || input.startsWith('http')) {
+                loadPage(input, activeTab);
+            } else {
+                loadPage(input, activeTab);
+            }
+        };
+        
+        urlInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') document.getElementById('goBtn').click();
+        });
+        
+        document.getElementById('reloadBtn').onclick = () => {
+            const tab = tabs.find(t => t.id === activeTab);
+            if (tab) loadPage(tab.url, activeTab);
+        };
+        
+        document.getElementById('backBtn').onclick = () => {
+            const tab = tabs.find(t => t.id === activeTab);
+            if (tab.historyIndex > 0) {
+                tab.historyIndex--;
+                loadPage(tab.history[tab.historyIndex], activeTab);
+            }
+        };
+        
+        document.getElementById('forwardBtn').onclick = () => {
+            const tab = tabs.find(t => t.id === activeTab);
+            if (tab.historyIndex < tab.history.length - 1) {
+                tab.historyIndex++;
+                loadPage(tab.history[tab.historyIndex], activeTab);
+            }
+        };
+        
+        // Авторизация
+        document.getElementById('authBtn').onclick = async () => {
+            if (currentUser) {
+                await supabase.auth.signOut();
+                currentUser = null;
+                document.getElementById('authBtn').innerText = 'Войти';
+                statusBar.innerHTML = '👋 Вы вышли из аккаунта';
+            } else {
+                const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+                if (error) alert('Ошибка: ' + error.message);
+            }
+        };
+        
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                currentUser = session.user;
+                document.getElementById('authBtn').innerText = `👤 ${session.user.email.split('@')[0]}`;
+                statusBar.innerHTML = `✅ Авторизован как ${session.user.email}`;
+            }
+        });
+        
+        // Запуск
+        loadPage('https://google.com', activeTab);
+    </script>
+</body>
+</html>
