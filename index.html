@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrToSb — Браузер с поиском</title>
+    <title>BrToSb — Браузер</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -106,9 +106,9 @@
         }
         .go-btn:hover { transform: scale(1.02); filter: brightness(1.05); }
         
-        .content-area { background: white; min-height: 550px; position: relative; overflow: auto; }
+        .content-area { background: white; min-height: 550px; position: relative; }
+        #page-frame { width: 100%; height: 550px; border: none; }
         
-        /* Стили для поисковой выдачи */
         .search-page {
             padding: 30px;
             max-width: 900px;
@@ -121,11 +121,7 @@
             padding-bottom: 20px;
             border-bottom: 1px solid #e0e0e0;
         }
-        .search-query {
-            font-size: 24px;
-            font-weight: bold;
-            color: #1a1a2e;
-        }
+        .search-query { font-size: 24px; font-weight: bold; color: #1a1a2e; }
         .search-result {
             padding: 20px;
             margin-bottom: 16px;
@@ -139,22 +135,9 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border-color: #ff6b6b;
         }
-        .result-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #1a73e8;
-            margin-bottom: 8px;
-        }
-        .result-url {
-            font-size: 12px;
-            color: #0d652d;
-            margin-bottom: 8px;
-        }
-        .result-desc {
-            font-size: 14px;
-            color: #555;
-            line-height: 1.5;
-        }
+        .result-title { font-size: 18px; font-weight: bold; color: #1a73e8; margin-bottom: 8px; }
+        .result-url { font-size: 12px; color: #0d652d; margin-bottom: 8px; }
+        .result-desc { font-size: 14px; color: #555; line-height: 1.5; }
         
         .loader {
             width: 48px; height: 48px;
@@ -173,7 +156,6 @@
             font-size: 12px; display: flex; justify-content: space-between;
         }
         .hidden { display: none !important; }
-        .iframe-view { width: 100%; height: 550px; border: none; }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1e1e2e; }
         ::-webkit-scrollbar-thumb { background: #ff6b6b; border-radius: 10px; }
@@ -185,10 +167,10 @@
         <div class="logo-area">
             <img src="https://img.icons8.com/fluency/48/traffic-light.png" class="logo-icon" alt="logo">
             <span class="logo-text">BrToSb</span>
-            <span class="badge">Настоящий поиск</span>
+            <span class="badge">Реальный поиск</span>
         </div>
         <button id="authBtn" class="auth-btn">
-            <img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px; height: 18px;" alt="user">
+            <img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;" alt="user">
             <span>Войти</span>
         </button>
     </div>
@@ -218,8 +200,8 @@
     </div>
 
     <div class="status-bar">
-        <span>🔍 Поиск через DuckDuckGo API</span>
-        <span id="statusText">✅ Готов к работе</span>
+        <span>🔍 Поиск через Google, Яндекс, Bing, DuckDuckGo</span>
+        <span id="statusText">✅ Готов</span>
     </div>
 </div>
 
@@ -250,67 +232,20 @@
         return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
-    // Отображение результатов поиска
-    function showSearchResults(results, query) {
-        iframe.classList.add('hidden');
-        searchPage.classList.remove('hidden');
-        
-        if (!results || results.length === 0) {
-            searchPage.innerHTML = `
-                <div class="search-header">
-                    <div class="search-query">🔍 "${escapeHtml(query)}"</div>
-                    <div style="color: #666; margin-top: 10px;">Ничего не найдено</div>
-                </div>
-                <div style="text-align: center; padding: 60px;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
-                    <h3>Попробуйте другой запрос</h3>
-                </div>
-            `;
-            return;
-        }
-        
-        searchPage.innerHTML = `
-            <div class="search-header">
-                <div class="search-query">🔍 Результаты поиска: "${escapeHtml(query)}"</div>
-                <div style="color: #666; margin-top: 10px;">Найдено ${results.length} результатов</div>
-            </div>
-            ${results.map(r => `
-                <div class="search-result" onclick="navigateToUrl('${escapeHtml(r.url)}')">
-                    <div class="result-title">${escapeHtml(r.title || r.url)}</div>
-                    <div class="result-url">${escapeHtml(r.url)}</div>
-                    <div class="result-desc">${escapeHtml(r.description || 'Нет описания')}</div>
-                </div>
-            `).join('')}
-        `;
-    }
-    
-    // Отображение сайта в iframe
-    function showWebsite(url, title) {
-        iframe.classList.remove('hidden');
-        searchPage.classList.add('hidden');
-        iframe.srcdoc = `<html><body style="margin:0;padding:0;"><iframe src="${url}" style="width:100%;height:550px;border:none;"></iframe></body></html>`;
-        setStatus(`Загружено: ${title || url}`);
-    }
-    
     async function callEdgeFunction(action, data) {
         try {
             const { data: result, error } = await sbClient.functions.invoke('fetch-page', {
-                body: JSON.stringify({ action, ...data, userId: currentUser?.id || 'anonymous' })
+                body: JSON.stringify({ action, ...data })
             });
             if (error) throw error;
             return result;
         } catch (err) {
             console.error('Edge error:', err);
-            setStatus(err.message, true);
             return { success: false, error: err.message };
         }
     }
     
-    // Поиск через Edge Function
     async function performSearch(query, tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-        
         loadingOverlay.classList.remove('hidden');
         setStatus(`Поиск: ${query}...`);
         
@@ -318,34 +253,55 @@
             const result = await callEdgeFunction('search', { query: query });
             
             if (result.success && result.results) {
-                showSearchResults(result.results, query);
+                searchPage.innerHTML = `
+                    <div class="search-header">
+                        <div class="search-query">🔍 Результаты поиска: "${escapeHtml(query)}"</div>
+                        <div style="color: #666; margin-top: 10px;">Найдено ${result.results.length} результатов</div>
+                    </div>
+                    ${result.results.map(r => `
+                        <div class="search-result" onclick="navigateToUrl('${escapeHtml(r.url)}')">
+                            <div class="result-title">${escapeHtml(r.title || r.url)}</div>
+                            <div class="result-url">${escapeHtml(r.url)}</div>
+                            <div class="result-desc">${escapeHtml(r.description || '')}</div>
+                        </div>
+                    `).join('')}
+                `;
+                searchPage.classList.remove('hidden');
+                iframe.classList.add('hidden');
                 
-                tab.url = `search:${query}`;
-                urlInput.value = query;
-                renderTabs();
+                const tab = tabs.find(t => t.id === tabId);
+                if (tab) {
+                    tab.url = `search:${query}`;
+                    urlInput.value = query;
+                    renderTabs();
+                }
                 setStatus(`Найдено ${result.results.length} результатов`);
             } else {
-                showSearchResults([], query);
-                setStatus('Ничего не найдено');
+                throw new Error('Нет результатов');
             }
         } catch (err) {
-            showSearchResults([], query);
+            searchPage.innerHTML = `
+                <div class="search-header">
+                    <div class="search-query">🔍 "${escapeHtml(query)}"</div>
+                    <div style="color: #666; margin-top: 10px;">Ошибка поиска: ${err.message}</div>
+                </div>
+                <div style="text-align: center; padding: 60px;">
+                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
+                    <h3>Попробуйте другой запрос</h3>
+                </div>
+            `;
+            searchPage.classList.remove('hidden');
+            iframe.classList.add('hidden');
             setStatus('Ошибка поиска', true);
         } finally {
             loadingOverlay.classList.add('hidden');
         }
     }
     
-    // Загрузка сайта или поиск
     async function loadPage(input, tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-        
-        // Проверяем, это URL или поисковый запрос
         const isUrl = input.match(/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/) || input.startsWith('http');
         
         if (isUrl) {
-            // Открываем сайт
             let finalUrl = input;
             if (!finalUrl.startsWith('http')) finalUrl = 'https://' + finalUrl;
             
@@ -356,16 +312,21 @@
                 const result = await callEdgeFunction('navigate', { url: finalUrl });
                 
                 if (result.success) {
-                    showWebsite(result.url, result.title);
+                    iframe.srcdoc = result.html;
+                    iframe.classList.remove('hidden');
+                    searchPage.classList.add('hidden');
                     
-                    if (tab.historyIndex < tab.history.length - 1) {
-                        tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                    const tab = tabs.find(t => t.id === tabId);
+                    if (tab) {
+                        if (tab.historyIndex < tab.history.length - 1) {
+                            tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                        }
+                        tab.history.push(result.url);
+                        tab.historyIndex = tab.history.length - 1;
+                        tab.url = result.url;
+                        urlInput.value = result.url;
+                        renderTabs();
                     }
-                    tab.history.push(result.url);
-                    tab.historyIndex = tab.history.length - 1;
-                    tab.url = result.url;
-                    urlInput.value = result.url;
-                    renderTabs();
                     setStatus(`Загружено: ${result.title}`);
                 } else {
                     throw new Error(result.error || 'Ошибка загрузки');
@@ -379,7 +340,6 @@
                 loadingOverlay.classList.add('hidden');
             }
         } else {
-            // Поисковый запрос
             await performSearch(input, tabId);
         }
     }
@@ -388,27 +348,12 @@
         loadPage(url, activeTabId);
     };
     
-    // ============= ВКЛАДКИ =============
-    function createNewTab(startUrl = '') {
+    // Вкладки
+    function createNewTab() {
         const newId = ++tabCounter;
-        tabs.push({ id: newId, url: 'search:', history: [], historyIndex: -1 });
+        tabs.push({ id: newId, url: '', history: [], historyIndex: -1 });
         renderTabs();
         switchToTab(newId);
-        
-        if (startUrl) {
-            loadPage(startUrl, newId);
-        } else {
-            // Пустая страница с поиском
-            searchPage.classList.remove('hidden');
-            iframe.classList.add('hidden');
-            searchPage.innerHTML = `
-                <div style="text-align: center; padding: 100px 20px;">
-                    <div style="font-size: 64px; margin-bottom: 30px;">🔍</div>
-                    <h2 style="font-size: 28px; margin-bottom: 20px;">Что вы ищете?</h2>
-                    <p style="color: #666;">Введите URL или поисковый запрос в адресную строку</p>
-                </div>
-            `;
-        }
         return newId;
     }
     
@@ -416,17 +361,15 @@
         activeTabId = tabId;
         const tab = tabs.find(t => t.id === tabId);
         if (tab) {
-            if (tab.url.startsWith('search:')) {
+            if (tab.url && tab.url.startsWith('search:')) {
                 const query = tab.url.replace('search:', '');
                 urlInput.value = query;
-                if (query) performSearch(query, tabId);
-            } else if (tab.url && tab.url !== 'search:') {
+                performSearch(query, tabId);
+            } else if (tab.url && tab.url !== '') {
                 urlInput.value = tab.url;
                 loadPage(tab.url, tabId);
             } else {
                 urlInput.value = '';
-                searchPage.classList.remove('hidden');
-                iframe.classList.add('hidden');
                 searchPage.innerHTML = `
                     <div style="text-align: center; padding: 100px 20px;">
                         <div style="font-size: 64px; margin-bottom: 30px;">🔍</div>
@@ -434,6 +377,8 @@
                         <p style="color: #666;">Введите URL или поисковый запрос</p>
                     </div>
                 `;
+                searchPage.classList.remove('hidden');
+                iframe.classList.add('hidden');
             }
             renderTabs();
         }
@@ -457,11 +402,11 @@
         tabs.forEach(tab => {
             const tabDiv = document.createElement('div');
             tabDiv.className = `tab ${activeTabId === tab.id ? 'active' : ''}`;
-            let displayName = 'Поиск';
-            if (tab.url && !tab.url.startsWith('search:')) {
-                try { displayName = new URL(tab.url).hostname; } catch(e) { displayName = 'Сайт'; }
-            } else if (tab.url && tab.url.startsWith('search:')) {
+            let displayName = 'Новая';
+            if (tab.url && tab.url.startsWith('search:')) {
                 displayName = `🔍 ${tab.url.replace('search:', '').substring(0, 20)}`;
+            } else if (tab.url && tab.url !== '') {
+                try { displayName = new URL(tab.url).hostname; } catch(e) { displayName = 'Сайт'; }
             }
             tabDiv.innerHTML = `<span>${displayName.substring(0, 25)}</span><span class="close-tab" data-id="${tab.id}">✕</span>`;
             tabDiv.onclick = (e) => {
@@ -481,7 +426,7 @@
         tabsContainer.appendChild(newTabBtn);
     }
     
-    // ============= АВТОРИЗАЦИЯ =============
+    // Авторизация
     const authBtn = document.getElementById('authBtn');
     authBtn.onclick = async () => {
         if (currentUser) {
@@ -503,7 +448,7 @@
         }
     });
     
-    // ============= КНОПКИ =============
+    // Кнопки
     document.getElementById('goBtn').onclick = () => {
         const input = urlInput.value.trim();
         if (input) loadPage(input, activeTabId);
@@ -511,8 +456,10 @@
     urlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('goBtn').click(); });
     document.getElementById('reloadBtn').onclick = () => {
         const tab = tabs.find(t => t.id === activeTabId);
-        if (tab && tab.url && !tab.url.startsWith('search:')) loadPage(tab.url, activeTabId);
-        else if (tab && tab.url.startsWith('search:')) performSearch(tab.url.replace('search:', ''), activeTabId);
+        if (tab && tab.url) {
+            if (tab.url.startsWith('search:')) performSearch(tab.url.replace('search:', ''), activeTabId);
+            else loadPage(tab.url, activeTabId);
+        }
     };
     document.getElementById('homeBtn').onclick = () => createNewTab();
     document.getElementById('backBtn').onclick = () => {
@@ -539,7 +486,7 @@
         }
     };
     
-    // ЗАПУСК
+    // Запуск
     createNewTab();
 </script>
 </body>
