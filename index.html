@@ -21,6 +21,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
         }
         .logo-area { display: flex; align-items: center; gap: 12px; }
         .logo-icon { width: 40px; height: 40px; }
@@ -31,6 +33,13 @@
             border-radius: 20px;
             font-size: 12px;
             color: rgba(255,255,255,0.8);
+        }
+        .user-email {
+            background: rgba(255,255,255,0.1);
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #ff6b6b;
         }
         .auth-btn {
             background: rgba(255,255,255,0.1);
@@ -45,6 +54,53 @@
             transition: all 0.2s;
         }
         .auth-btn:hover { background: rgba(255,255,255,0.2); }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            width: 350px;
+            max-width: 90%;
+        }
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+        }
+        .modal-content button {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .modal-content .switch {
+            text-align: center;
+            margin-top: 15px;
+            color: #666;
+            cursor: pointer;
+        }
+        .modal-content .switch:hover { color: #ff6b6b; }
         
         .browser-frame {
             background: #1e1e2e;
@@ -107,7 +163,7 @@
         .go-btn:hover { transform: scale(1.02); filter: brightness(1.05); }
         
         .content-area { background: white; min-height: 550px; position: relative; }
-        #page-frame { width: 100%; height: 550px; border: none; }
+        #page-frame { width: 100%; height: 550px; border: none; background: white; }
         
         .search-page {
             padding: 30px;
@@ -167,12 +223,25 @@
         <div class="logo-area">
             <img src="https://img.icons8.com/fluency/48/traffic-light.png" class="logo-icon" alt="logo">
             <span class="logo-text">BrToSb</span>
-            <span class="badge">Реальный поиск</span>
+            <span class="badge">Синхронизация</span>
         </div>
-        <button id="authBtn" class="auth-btn">
-            <img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;" alt="user">
-            <span>Войти</span>
-        </button>
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <span id="userEmail" class="user-email hidden"></span>
+            <button id="authBtn" class="auth-btn">
+                <img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;" alt="user">
+                <span>Войти</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="authModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" style="margin-bottom: 20px;">Вход</h2>
+            <input type="email" id="loginEmail" placeholder="Email">
+            <input type="password" id="loginPassword" placeholder="Пароль">
+            <button id="submitAuthBtn">Войти</button>
+            <div class="switch" id="switchAuthMode">Нет аккаунта? Зарегистрироваться</div>
+        </div>
     </div>
 
     <div class="browser-frame">
@@ -191,8 +260,8 @@
         </div>
 
         <div class="content-area">
-            <iframe id="page-frame" class="iframe-view hidden" src="about:blank"></iframe>
-            <div id="search-page" class="search-page"></div>
+            <iframe id="page-frame" src="about:blank" style="width:100%;height:550px;border:none;"></iframe>
+            <div id="search-page" class="search-page hidden"></div>
             <div id="loadingOverlay" class="loading-overlay hidden">
                 <div class="loader"></div>
             </div>
@@ -215,6 +284,7 @@
     let tabs = [];
     let activeTabId = null;
     let tabCounter = 0;
+    let isLoginMode = true;
     
     const iframe = document.getElementById('page-frame');
     const searchPage = document.getElementById('search-page');
@@ -222,6 +292,14 @@
     const loadingOverlay = document.getElementById('loadingOverlay');
     const statusSpan = document.getElementById('statusText');
     const tabsContainer = document.getElementById('tabsContainer');
+    const userEmailSpan = document.getElementById('userEmail');
+    const authBtn = document.getElementById('authBtn');
+    const authModal = document.getElementById('authModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const loginEmail = document.getElementById('loginEmail');
+    const loginPassword = document.getElementById('loginPassword');
+    const submitAuthBtn = document.getElementById('submitAuthBtn');
+    const switchAuthMode = document.getElementById('switchAuthMode');
     
     function setStatus(text, isError = false) {
         statusSpan.innerHTML = isError ? `❌ ${text}` : `✅ ${text}`;
@@ -232,10 +310,161 @@
         return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
+    // Функция для преобразования относительных ссылок в абсолютные
+    function fixRelativeUrls(html, baseUrl) {
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        
+        // Исправляем все ссылки
+        temp.querySelectorAll('a').forEach(link => {
+            let href = link.getAttribute('href');
+            if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+                try {
+                    const absoluteUrl = new URL(href, baseUrl).href;
+                    link.setAttribute('href', absoluteUrl);
+                } catch(e) {}
+            }
+            // Добавляем обработчик клика для перехвата
+            link.setAttribute('target', '_top');
+            link.onclick = function(e) {
+                e.preventDefault();
+                const newUrl = this.getAttribute('href');
+                if (newUrl && newUrl !== '#') {
+                    loadPage(newUrl, activeTabId);
+                }
+                return false;
+            };
+        });
+        
+        // Исправляем формы
+        temp.querySelectorAll('form').forEach(form => {
+            let action = form.getAttribute('action');
+            if (action && !action.startsWith('http://') && !action.startsWith('https://')) {
+                try {
+                    const absoluteUrl = new URL(action, baseUrl).href;
+                    form.setAttribute('action', absoluteUrl);
+                } catch(e) {}
+            }
+            form.setAttribute('target', '_top');
+        });
+        
+        // Исправляем изображения
+        temp.querySelectorAll('img').forEach(img => {
+            let src = img.getAttribute('src');
+            if (src && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
+                try {
+                    const absoluteUrl = new URL(src, baseUrl).href;
+                    img.setAttribute('src', absoluteUrl);
+                } catch(e) {}
+            }
+        });
+        
+        // Исправляем CSS
+        temp.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
+            let href = link.getAttribute('href');
+            if (href && !href.startsWith('http://') && !href.startsWith('https://')) {
+                try {
+                    const absoluteUrl = new URL(href, baseUrl).href;
+                    link.setAttribute('href', absoluteUrl);
+                } catch(e) {}
+            }
+        });
+        
+        return temp.innerHTML;
+    }
+    
+    async function checkSession() {
+        const { data: { session } } = await sbClient.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>Выйти</span>`;
+            userEmailSpan.innerHTML = `👤 ${currentUser.email}`;
+            userEmailSpan.classList.remove('hidden');
+            setStatus(`Авторизован как ${currentUser.email}`);
+        }
+    }
+    
+    submitAuthBtn.onclick = async () => {
+        const email = loginEmail.value;
+        const password = loginPassword.value;
+        
+        if (!email || !password) {
+            alert('Заполните все поля');
+            return;
+        }
+        
+        setStatus('Загрузка...');
+        
+        if (isLoginMode) {
+            const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+            if (error) {
+                setStatus(error.message, true);
+                alert('Ошибка: ' + error.message);
+            } else {
+                currentUser = data.user;
+                authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>Выйти</span>`;
+                userEmailSpan.innerHTML = `👤 ${currentUser.email}`;
+                userEmailSpan.classList.remove('hidden');
+                setStatus(`Добро пожаловать, ${currentUser.email}`);
+                authModal.classList.remove('active');
+                loginEmail.value = '';
+                loginPassword.value = '';
+            }
+        } else {
+            const { data, error } = await sbClient.auth.signUp({ email, password });
+            if (error) {
+                setStatus(error.message, true);
+                alert('Ошибка: ' + error.message);
+            } else {
+                setStatus('Проверьте почту для подтверждения');
+                alert('Регистрация успешна! Проверьте почту для подтверждения.');
+                isLoginMode = true;
+                modalTitle.innerText = 'Вход';
+                switchAuthMode.innerText = 'Нет аккаунта? Зарегистрироваться';
+                submitAuthBtn.innerText = 'Войти';
+            }
+        }
+    };
+    
+    switchAuthMode.onclick = () => {
+        isLoginMode = !isLoginMode;
+        if (isLoginMode) {
+            modalTitle.innerText = 'Вход';
+            switchAuthMode.innerText = 'Нет аккаунта? Зарегистрироваться';
+            submitAuthBtn.innerText = 'Войти';
+        } else {
+            modalTitle.innerText = 'Регистрация';
+            switchAuthMode.innerText = 'Уже есть аккаунт? Войти';
+            submitAuthBtn.innerText = 'Зарегистрироваться';
+        }
+    };
+    
+    authBtn.onclick = () => {
+        if (currentUser) {
+            sbClient.auth.signOut();
+            currentUser = null;
+            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>Войти</span>`;
+            userEmailSpan.classList.add('hidden');
+            setStatus('Вы вышли');
+        } else {
+            authModal.classList.add('active');
+        }
+    };
+    
+    authModal.onclick = (e) => {
+        if (e.target === authModal) {
+            authModal.classList.remove('active');
+        }
+    };
+    
     async function callEdgeFunction(action, data) {
         try {
             const { data: result, error } = await sbClient.functions.invoke('fetch-page', {
-                body: JSON.stringify({ action, ...data })
+                body: JSON.stringify({ 
+                    action, 
+                    ...data, 
+                    userId: currentUser?.id || 'anonymous' 
+                })
             });
             if (error) throw error;
             return result;
@@ -265,6 +494,7 @@
                             <div class="result-desc">${escapeHtml(r.description || '')}</div>
                         </div>
                     `).join('')}
+                    ${currentUser ? `<p style="color: #ff6b6b; text-align: center; margin-top: 20px;">👤 Вы вошли как: ${currentUser.email}</p>` : ''}
                 `;
                 searchPage.classList.remove('hidden');
                 iframe.classList.add('hidden');
@@ -289,6 +519,7 @@
                     <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
                     <h3>Попробуйте другой запрос</h3>
                 </div>
+                ${currentUser ? `<p style="color: #ff6b6b; text-align: center; margin-top: 20px;">👤 Вы вошли как: ${currentUser.email}</p>` : ''}
             `;
             searchPage.classList.remove('hidden');
             iframe.classList.add('hidden');
@@ -312,7 +543,9 @@
                 const result = await callEdgeFunction('navigate', { url: finalUrl });
                 
                 if (result.success) {
-                    iframe.srcdoc = result.html;
+                    // Исправляем относительные ссылки
+                    const fixedHtml = fixRelativeUrls(result.html, result.url);
+                    iframe.srcdoc = fixedHtml;
                     iframe.classList.remove('hidden');
                     searchPage.classList.add('hidden');
                     
@@ -332,7 +565,7 @@
                     throw new Error(result.error || 'Ошибка загрузки');
                 }
             } catch (err) {
-                iframe.srcdoc = `<html><body style="padding:40px;text-align:center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p></body></html>`;
+                iframe.srcdoc = `<html><body style="padding:40px;text-align:center;font-family:Arial;"><h2>⚠️ Ошибка</h2><p>${err.message}</p><p>Сайт может запрещать отображение в iframe</p></body></html>`;
                 iframe.classList.remove('hidden');
                 searchPage.classList.add('hidden');
                 setStatus(err.message, true);
@@ -348,7 +581,6 @@
         loadPage(url, activeTabId);
     };
     
-    // Вкладки
     function createNewTab() {
         const newId = ++tabCounter;
         tabs.push({ id: newId, url: '', history: [], historyIndex: -1 });
@@ -375,6 +607,7 @@
                         <div style="font-size: 64px; margin-bottom: 30px;">🔍</div>
                         <h2 style="font-size: 28px; margin-bottom: 20px;">BrToSb Browser</h2>
                         <p style="color: #666;">Введите URL или поисковый запрос</p>
+                        ${currentUser ? `<p style="color: #ff6b6b; margin-top: 20px;">👤 Вы вошли как: ${currentUser.email}</p>` : ''}
                     </div>
                 `;
                 searchPage.classList.remove('hidden');
@@ -426,29 +659,6 @@
         tabsContainer.appendChild(newTabBtn);
     }
     
-    // Авторизация
-    const authBtn = document.getElementById('authBtn');
-    authBtn.onclick = async () => {
-        if (currentUser) {
-            await sbClient.auth.signOut();
-            currentUser = null;
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>Войти</span>`;
-            setStatus('Вы вышли');
-        } else {
-            const { error } = await sbClient.auth.signInWithOAuth({ provider: 'github' });
-            if (error) alert('Ошибка: ' + error.message);
-        }
-    };
-    
-    sbClient.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            currentUser = session.user;
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>${session.user.email.split('@')[0]}</span>`;
-            setStatus(`Авторизован как ${session.user.email}`);
-        }
-    });
-    
-    // Кнопки
     document.getElementById('goBtn').onclick = () => {
         const input = urlInput.value.trim();
         if (input) loadPage(input, activeTabId);
@@ -478,16 +688,24 @@
     };
     document.getElementById('bookmarkBtn').onclick = async () => {
         const tab = tabs.find(t => t.id === activeTabId);
-        if (!currentUser) { alert('Войдите в аккаунт'); return; }
+        if (!currentUser) { 
+            alert('Войдите в аккаунт, чтобы добавлять закладки');
+            return; 
+        }
         if (tab && tab.url && !tab.url.startsWith('search:')) {
-            await sbClient.from('bookmarks').insert({ user_id: currentUser.id, url: tab.url, title: tab.url });
+            await sbClient.from('bookmarks').insert({ 
+                user_id: currentUser.id, 
+                url: tab.url, 
+                title: tab.url,
+                created_at: new Date().toISOString()
+            });
             setStatus('⭐ Добавлено в закладки');
             setTimeout(() => setStatus('Готов'), 2000);
         }
     };
     
-    // Запуск
     createNewTab();
+    checkSession();
 </script>
 </body>
 </html>
