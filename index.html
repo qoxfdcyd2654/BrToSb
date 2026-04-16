@@ -7,7 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
@@ -16,7 +16,6 @@
         }
         .browser-container { max-width: 1400px; margin: 0 auto; }
         
-        /* ШАПКА */
         .browser-header {
             display: flex;
             justify-content: space-between;
@@ -47,7 +46,6 @@
         }
         .auth-btn:hover { background: rgba(255,255,255,0.2); }
         
-        /* РАМКА БРАУЗЕРА */
         .browser-frame {
             background: #1e1e2e;
             border-radius: 16px;
@@ -55,7 +53,6 @@
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
         
-        /* ВКЛАДКИ */
         .tabs-bar {
             display: flex;
             align-items: center;
@@ -90,7 +87,6 @@
         }
         .new-tab-btn:hover { background: #353550; color: #ddd; }
         
-        /* ПАНЕЛЬ НАВИГАЦИИ */
         .nav-bar {
             display: flex; align-items: center; gap: 8px;
             padding: 12px 16px; background: #1e1e2e; border-top: 1px solid #2a2a3e;
@@ -110,11 +106,22 @@
         }
         .go-btn:hover { transform: scale(1.02); filter: brightness(1.05); }
         
-        /* ОБЛАСТЬ КОНТЕНТА */
-        .content-area { background: white; min-height: 550px; position: relative; }
-        #browser-iframe { width: 100%; height: 550px; border: none; background: white; }
+        /* ОБЛАСТЬ КОНТЕНТА - свой рендер */
+        .content-area { background: white; min-height: 550px; position: relative; overflow: auto; }
+        #page-content {
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+        }
+        #page-content a { color: #0066cc; text-decoration: none; cursor: pointer; }
+        #page-content a:hover { text-decoration: underline; }
+        #page-content img { max-width: 100%; height: auto; }
+        #page-content h1 { font-size: 2em; margin: 0.67em 0; }
+        #page-content h2 { font-size: 1.5em; margin: 0.83em 0; }
+        #page-content h3 { font-size: 1.17em; margin: 1em 0; }
+        #page-content p { margin: 1em 0; }
+        #page-content ul, #page-content ol { margin: 1em 0; padding-left: 40px; }
         
-        /* ПОИСК */
         .search-container { padding: 20px; background: white; height: 550px; overflow-y: auto; }
         .search-card {
             background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
@@ -122,7 +129,6 @@
         }
         .search-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border-color: #ff6b6b; }
         
-        /* ЛОАДЕР */
         .loader {
             width: 48px; height: 48px;
             border: 4px solid #e0e0e0;
@@ -175,7 +181,7 @@
         </div>
 
         <div class="content-area">
-            <iframe id="browser-iframe" src="about:blank" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation"></iframe>
+            <div id="page-content"></div>
             <div id="searchContainer" class="search-container hidden"></div>
             <div id="loadingOverlay" class="loading-overlay hidden">
                 <div class="loader"></div>
@@ -194,7 +200,6 @@
     const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMzM1MzcsImV4cCI6MjA5MDYwOTUzN30.y5AL4XkUPzDl1jGDLfvKistXflOpuxcSoedzbhr6hgk';
     
-    // УНИКАЛЬНЫЙ клиент Supabase
     const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
     // ============= СОСТОЯНИЕ =============
@@ -204,7 +209,7 @@
     let tabCounter = 0;
     
     // DOM элементы
-    const iframe = document.getElementById('browser-iframe');
+    const pageContent = document.getElementById('page-content');
     const urlInput = document.getElementById('urlInput');
     const searchContainer = document.getElementById('searchContainer');
     const loadingOverlay = document.getElementById('loadingOverlay');
@@ -220,8 +225,47 @@
         return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
     }
     
+    // Рендер HTML с обработкой ссылок
+    function renderHtml(html, baseUrl) {
+        pageContent.innerHTML = '';
+        const temp = document.createElement('div');
+        temp.innerHTML = html;
+        
+        // Исправляем все ссылки и делаем их кликабельными
+        temp.querySelectorAll('a').forEach(link => {
+            let href = link.getAttribute('href');
+            if (href && !href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('#') && !href.startsWith('javascript:')) {
+                try {
+                    href = new URL(href, baseUrl).href;
+                    link.setAttribute('href', href);
+                } catch(e) {}
+            }
+            if (href && href !== '#' && !href.startsWith('javascript:')) {
+                link.onclick = function(e) {
+                    e.preventDefault();
+                    loadPage(this.getAttribute('href'), activeTabId);
+                    return false;
+                };
+                link.style.cursor = 'pointer';
+            }
+        });
+        
+        // Исправляем пути к картинкам
+        temp.querySelectorAll('img').forEach(img => {
+            let src = img.getAttribute('src');
+            if (src && !src.startsWith('http://') && !src.startsWith('https://') && !src.startsWith('data:')) {
+                try {
+                    src = new URL(src, baseUrl).href;
+                    img.setAttribute('src', src);
+                } catch(e) {}
+            }
+        });
+        
+        pageContent.appendChild(temp);
+    }
+    
     function showSearchResults(results, query) {
-        iframe.classList.add('hidden');
+        pageContent.classList.add('hidden');
         searchContainer.classList.remove('hidden');
         
         if (!results || results.length === 0) {
@@ -273,14 +317,14 @@
         
         loadingOverlay.classList.remove('hidden');
         searchContainer.classList.add('hidden');
-        iframe.classList.remove('hidden');
+        pageContent.classList.remove('hidden');
         setStatus('Загрузка...');
         
         try {
             const result = await callEdgeFunction('navigate', { url: finalUrl });
             
             if (result.success) {
-                iframe.srcdoc = result.html;
+                renderHtml(result.html, result.url || finalUrl);
                 
                 if (tab.historyIndex < tab.history.length - 1) {
                     tab.history = tab.history.slice(0, tab.historyIndex + 1);
@@ -297,7 +341,7 @@
                 throw new Error(result.error || 'Ошибка загрузки');
             }
         } catch (err) {
-            iframe.srcdoc = `<html><body style="font-family:Arial;padding:40px;text-align:center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p></body></html>`;
+            pageContent.innerHTML = `<div style="padding:40px;text-align:center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p></div>`;
             setStatus(err.message, true);
         } finally {
             loadingOverlay.classList.add('hidden');
@@ -306,7 +350,7 @@
     
     window.navigateToUrl = function(url) {
         searchContainer.classList.add('hidden');
-        iframe.classList.remove('hidden');
+        pageContent.classList.remove('hidden');
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab) loadPage(url, activeTabId);
     };
