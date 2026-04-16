@@ -7,19 +7,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            user-select: none;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
             min-height: 100vh;
             padding: 16px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        .browser-container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+        .browser-container { max-width: 1400px; margin: 0 auto; }
+        
         /* ШАПКА */
         .browser-header {
             display: flex;
@@ -27,20 +23,9 @@
             align-items: center;
             margin-bottom: 16px;
         }
-        .logo-area {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-        }
-        .logo-text {
-            font-size: 24px;
-            font-weight: bold;
-            color: white;
-        }
+        .logo-area { display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 40px; height: 40px; }
+        .logo-text { font-size: 24px; font-weight: bold; color: white; }
         .badge {
             background: rgba(255,255,255,0.2);
             padding: 4px 12px;
@@ -60,9 +45,8 @@
             gap: 8px;
             transition: all 0.2s;
         }
-        .auth-btn:hover {
-            background: rgba(255,255,255,0.2);
-        }
+        .auth-btn:hover { background: rgba(255,255,255,0.2); }
+        
         /* РАМКА БРАУЗЕРА */
         .browser-frame {
             background: #1e1e2e;
@@ -70,6 +54,7 @@
             overflow: hidden;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
+        
         /* ВКЛАДКИ */
         .tabs-bar {
             display: flex;
@@ -89,184 +74,79 @@
             cursor: pointer;
             font-size: 13px;
             color: #aaa;
-            transition: all 0.2s;
             white-space: nowrap;
         }
-        .tab.active {
-            background: #3a3a5e;
-            color: white;
-            border-bottom: 2px solid #ff6b6b;
-        }
-        .tab:hover:not(.active) {
-            background: #353550;
-            color: #ddd;
-        }
+        .tab.active { background: #3a3a5e; color: white; border-bottom: 2px solid #ff6b6b; }
+        .tab:hover:not(.active) { background: #353550; color: #ddd; }
         .close-tab {
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            background: #ff6b6b;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            cursor: pointer;
-            color: white;
+            width: 16px; height: 16px; border-radius: 50%; background: #ff6b6b;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 10px; cursor: pointer; color: white;
         }
         .new-tab-btn {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 8px 12px;
-            background: #2a2a3e;
-            border-radius: 10px 10px 0 0;
-            cursor: pointer;
-            font-size: 13px;
-            color: #aaa;
+            display: flex; align-items: center; gap: 4px; padding: 8px 12px;
+            background: #2a2a3e; border-radius: 10px 10px 0 0;
+            cursor: pointer; font-size: 13px; color: #aaa;
         }
-        .new-tab-btn:hover {
-            background: #353550;
-            color: #ddd;
-        }
+        .new-tab-btn:hover { background: #353550; color: #ddd; }
+        
         /* ПАНЕЛЬ НАВИГАЦИИ */
         .nav-bar {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 12px 16px;
-            background: #1e1e2e;
-            border-top: 1px solid #2a2a3e;
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 16px; background: #1e1e2e; border-top: 1px solid #2a2a3e;
         }
         .nav-btn {
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #2a2a3e;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-size: 18px;
-            color: white;
+            width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+            background: #2a2a3e; border-radius: 10px; cursor: pointer; font-size: 18px; color: white;
         }
-        .nav-btn:hover {
-            background: #3a3a5e;
-            transform: scale(1.05);
-        }
-        .url-bar {
-            flex: 1;
-            background: #2a2a3e;
-            border-radius: 12px;
-            padding: 8px 16px;
-            border: 1px solid #3a3a5e;
-        }
-        .url-bar input {
-            width: 100%;
-            background: transparent;
-            border: none;
-            outline: none;
-            color: white;
-            font-size: 14px;
-        }
-        .url-bar input::placeholder {
-            color: #666;
-        }
+        .nav-btn:hover { background: #3a3a5e; transform: scale(1.05); }
+        .url-bar { flex: 1; background: #2a2a3e; border-radius: 12px; padding: 8px 16px; border: 1px solid #3a3a5e; }
+        .url-bar input { width: 100%; background: transparent; border: none; outline: none; color: white; font-size: 14px; }
+        .url-bar input::placeholder { color: #666; }
         .go-btn {
             background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-            padding: 8px 24px;
-            border-radius: 12px;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
+            padding: 8px 24px; border-radius: 12px; color: white;
+            font-weight: bold; cursor: pointer;
         }
-        .go-btn:hover {
-            transform: scale(1.02);
-            filter: brightness(1.05);
-        }
+        .go-btn:hover { transform: scale(1.02); filter: brightness(1.05); }
+        
         /* ОБЛАСТЬ КОНТЕНТА */
-        .content-area {
-            background: white;
-            min-height: 550px;
-            position: relative;
-        }
-        #browser-iframe {
-            width: 100%;
-            height: 550px;
-            border: none;
-            background: white;
-        }
-        /* РЕЗУЛЬТАТЫ ПОИСКА */
-        .search-container {
-            padding: 20px;
-            background: white;
-            height: 550px;
-            overflow-y: auto;
-        }
+        .content-area { background: white; min-height: 550px; position: relative; }
+        #browser-iframe { width: 100%; height: 550px; border: none; background: white; }
+        
+        /* ПОИСК */
+        .search-container { padding: 20px; background: white; height: 550px; overflow-y: auto; }
         .search-card {
-            background: white;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
-            cursor: pointer;
-            border: 1px solid #e0e0e0;
-            transition: all 0.2s;
+            background: white; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+            cursor: pointer; border: 1px solid #e0e0e0; transition: all 0.2s;
         }
-        .search-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
-            border-color: #ff6b6b;
-        }
-        /* ЛОАДЕР - убрали туман, просто спиннер */
+        .search-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); border-color: #ff6b6b; }
+        
+        /* ЛОАДЕР */
         .loader {
-            width: 48px;
-            height: 48px;
+            width: 48px; height: 48px;
             border: 4px solid #e0e0e0;
             border-top: 4px solid #ff6b6b;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .loading-overlay {
-            position: absolute;
-            inset: 0;
-            background: rgba(255,255,255,0.95);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 100;
+            position: absolute; inset: 0; background: rgba(255,255,255,0.95);
+            display: flex; align-items: center; justify-content: center; z-index: 100;
         }
         .status-bar {
-            margin-top: 16px;
-            text-align: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
-            display: flex;
-            justify-content: space-between;
+            margin-top: 16px; text-align: center; color: rgba(255,255,255,0.6);
+            font-size: 12px; display: flex; justify-content: space-between;
         }
-        .hidden {
-            display: none !important;
-        }
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #1e1e2e;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #ff6b6b;
-            border-radius: 10px;
-        }
+        .hidden { display: none !important; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1e1e2e; }
+        ::-webkit-scrollbar-thumb { background: #ff6b6b; border-radius: 10px; }
     </style>
 </head>
 <body>
 <div class="browser-container">
-    <!-- ШАПКА -->
     <div class="browser-header">
         <div class="logo-area">
             <img src="https://img.icons8.com/fluency/48/traffic-light.png" class="logo-icon" alt="logo">
@@ -279,7 +159,6 @@
         </button>
     </div>
 
-    <!-- БРАУЗЕР -->
     <div class="browser-frame">
         <div class="tabs-bar" id="tabsContainer"></div>
         
@@ -311,66 +190,57 @@
 </div>
 
 <script>
-    // ============= НАСТРОЙКИ SUPABASE (без ошибки дублирования) =============
+    // ============= НАСТРОЙКИ =============
     const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMzM1MzcsImV4cCI6MjA5MDYwOTUzN30.y5AL4XkUPzDl1jGDLfvKistXflOpuxcSoedzbhr6hgk';
     
-    // Проверяем, не создан ли уже клиент
-    let supabase;
-    if (window._supabaseClient) {
-        supabase = window._supabaseClient;
-    } else {
-        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        window._supabaseClient = supabase;
-    }
+    // УНИКАЛЬНЫЙ клиент Supabase
+    const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // ============= ГЛОБАЛЬНОЕ СОСТОЯНИЕ =============
+    // ============= СОСТОЯНИЕ =============
     let currentUser = null;
     let tabs = [];
     let activeTabId = null;
     let tabCounter = 0;
     
-    // ============= DOM ЭЛЕМЕНТЫ =============
+    // DOM элементы
     const iframe = document.getElementById('browser-iframe');
     const urlInput = document.getElementById('urlInput');
     const searchContainer = document.getElementById('searchContainer');
     const loadingOverlay = document.getElementById('loadingOverlay');
-    const statusText = document.getElementById('statusText');
+    const statusSpan = document.getElementById('statusText');
     const tabsContainer = document.getElementById('tabsContainer');
     
     function setStatus(text, isError = false) {
-        statusText.innerHTML = isError ? `❌ ${text}` : `✅ ${text}`;
+        statusSpan.innerHTML = isError ? `❌ ${text}` : `✅ ${text}`;
     }
     
-    // Показать результаты поиска
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
     function showSearchResults(results, query) {
         iframe.classList.add('hidden');
         searchContainer.classList.remove('hidden');
         
         if (!results || results.length === 0) {
-            searchContainer.innerHTML = `
-                <div style="text-align: center; padding: 60px;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
-                    <h3>Ничего не найдено по запросу "${escapeHtml(query)}"</h3>
-                    <p style="color: #666;">Попробуйте другой поисковый запрос</p>
-                </div>
-            `;
+            searchContainer.innerHTML = `<div style="text-align:center;padding:60px;"><div style="font-size:48px;margin-bottom:20px;">🔍</div><h3>Ничего не найдено по запросу "${escapeHtml(query)}"</h3></div>`;
             return;
         }
         
         searchContainer.innerHTML = `
-            <div style="margin-bottom: 20px; padding: 12px; background: linear-gradient(135deg, #fff5f5, #fff0f0); border-radius: 12px;">
-                <strong>🔍 Результаты поиска: "${escapeHtml(query)}"</strong>
-                <span style="color: #666; margin-left: 10px;">(найдено ${results.length})</span>
+            <div style="margin-bottom:20px;padding:12px;background:linear-gradient(135deg,#fff5f5,#fff0f0);border-radius:12px;">
+                <strong>🔍 Результаты поиска: "${escapeHtml(query)}"</strong> (${results.length})
             </div>
             ${results.map(r => `
                 <div class="search-card" onclick="window.navigateToUrl('${escapeHtml(r.url)}')">
-                    <div style="display: flex; gap: 12px;">
-                        <img src="https://www.google.com/s2/favicons?domain=${r.url}" style="width: 24px; height: 24px;">
+                    <div style="display:flex;gap:12px;">
+                        <img src="https://www.google.com/s2/favicons?domain=${r.url}" style="width:24px;height:24px;">
                         <div>
-                            <div style="font-weight: bold; color: #667eea;">${escapeHtml(r.title || r.url)}</div>
-                            <div style="font-size: 13px; color: #888; margin-top: 4px;">${escapeHtml(r.url)}</div>
-                            <div style="font-size: 14px; color: #555; margin-top: 6px;">${escapeHtml(r.description || 'Нет описания')}</div>
+                            <div style="font-weight:bold;color:#667eea;">${escapeHtml(r.title || r.url)}</div>
+                            <div style="font-size:13px;color:#888;margin-top:4px;">${escapeHtml(r.url)}</div>
+                            <div style="font-size:14px;color:#555;margin-top:6px;">${escapeHtml(r.description || '')}</div>
                         </div>
                     </div>
                 </div>
@@ -378,36 +248,20 @@
         `;
     }
     
-    function escapeHtml(str) {
-        if (!str) return '';
-        return String(str).replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-    
-    // Вызов Edge Function
     async function callEdgeFunction(action, data) {
         try {
-            const { data: result, error } = await supabase.functions.invoke('fetch-page', {
-                body: JSON.stringify({
-                    action: action,
-                    ...data,
-                    userId: currentUser?.id || 'anonymous'
-                })
+            const { data: result, error } = await sbClient.functions.invoke('fetch-page', {
+                body: JSON.stringify({ action, ...data, userId: currentUser?.id || 'anonymous' })
             });
             if (error) throw error;
             return result;
         } catch (err) {
-            console.error('Edge Function error:', err);
+            console.error('Edge error:', err);
             setStatus(err.message, true);
             return { success: false, error: err.message };
         }
     }
     
-    // Загрузка страницы
     async function loadPage(url, tabId) {
         const tab = tabs.find(t => t.id === tabId);
         if (!tab) return;
@@ -434,18 +288,17 @@
                 tab.history.push(result.url || finalUrl);
                 tab.historyIndex = tab.history.length - 1;
                 tab.url = result.url || finalUrl;
-                
                 urlInput.value = result.url || finalUrl;
                 setStatus(`Загружено: ${result.title || finalUrl}`);
             } else if (result.searchResults) {
                 showSearchResults(result.searchResults, finalUrl);
                 setStatus(`Сайт не найден, показаны результаты поиска`);
             } else {
-                throw new Error(result.error || 'Неизвестная ошибка');
+                throw new Error(result.error || 'Ошибка загрузки');
             }
         } catch (err) {
-            iframe.srcdoc = `<html><body style="font-family: Arial; padding: 40px; text-align: center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p><p>Попробуйте другой URL</p></body></html>`;
-            setStatus(`Ошибка: ${err.message}`, true);
+            iframe.srcdoc = `<html><body style="font-family:Arial;padding:40px;text-align:center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p></body></html>`;
+            setStatus(err.message, true);
         } finally {
             loadingOverlay.classList.add('hidden');
         }
@@ -458,16 +311,10 @@
         if (tab) loadPage(url, activeTabId);
     };
     
-    // ============= УПРАВЛЕНИЕ ВКЛАДКАМИ =============
+    // ============= ВКЛАДКИ =============
     function createNewTab(url = 'https://example.com') {
         const newId = ++tabCounter;
-        const newTab = {
-            id: newId,
-            url: url,
-            history: [],
-            historyIndex: -1
-        };
-        tabs.push(newTab);
+        tabs.push({ id: newId, url: url, history: [], historyIndex: -1 });
         renderTabs();
         switchToTab(newId);
         loadPage(url, newId);
@@ -485,12 +332,12 @@
     }
     
     function closeTab(tabId) {
-        if (tabs.length === 1) return;
+        if (tabs.length <= 1) return;
         const index = tabs.findIndex(t => t.id === tabId);
         if (index !== -1) {
             tabs.splice(index, 1);
             if (activeTabId === tabId) {
-                const newActive = tabs[Math.min(index, tabs.length - 1)];
+                const newActive = tabs[Math.max(0, index - 1)];
                 if (newActive) switchToTab(newActive.id);
             }
             renderTabs();
@@ -503,13 +350,8 @@
             const tabDiv = document.createElement('div');
             tabDiv.className = `tab ${activeTabId === tab.id ? 'active' : ''}`;
             let hostname = 'Новая';
-            try {
-                hostname = new URL(tab.url).hostname;
-            } catch(e) {}
-            tabDiv.innerHTML = `
-                <span>${hostname.substring(0, 25)}</span>
-                <span class="close-tab" data-id="${tab.id}">✕</span>
-            `;
+            try { hostname = new URL(tab.url).hostname; } catch(e) {}
+            tabDiv.innerHTML = `<span>${hostname.substring(0, 25)}</span><span class="close-tab" data-id="${tab.id}">✕</span>`;
             tabDiv.onclick = (e) => {
                 if (e.target.classList.contains('close-tab')) {
                     e.stopPropagation();
@@ -520,7 +362,6 @@
             };
             tabsContainer.appendChild(tabDiv);
         });
-        
         const newTabBtn = document.createElement('div');
         newTabBtn.className = 'new-tab-btn';
         newTabBtn.innerHTML = '➕ Новая';
@@ -532,44 +373,35 @@
     const authBtn = document.getElementById('authBtn');
     authBtn.onclick = async () => {
         if (currentUser) {
-            await supabase.auth.signOut();
+            await sbClient.auth.signOut();
             currentUser = null;
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;"><span>Войти</span>`;
-            setStatus('Вы вышли из аккаунта');
+            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>Войти</span>`;
+            setStatus('Вы вышли');
         } else {
-            const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+            const { error } = await sbClient.auth.signInWithOAuth({ provider: 'github' });
             if (error) alert('Ошибка: ' + error.message);
         }
     };
     
-    supabase.auth.onAuthStateChange((event, session) => {
+    sbClient.auth.onAuthStateChange((event, session) => {
         if (session) {
             currentUser = session.user;
-            const userName = session.user.email.split('@')[0];
-            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;"><span>${userName}</span>`;
+            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width:18px;"><span>${session.user.email.split('@')[0]}</span>`;
             setStatus(`Авторизован как ${session.user.email}`);
         }
     });
     
-    // ============= НАВИГАЦИЯ =============
+    // ============= КНОПКИ =============
     document.getElementById('goBtn').onclick = () => {
-        let input = urlInput.value.trim();
+        const input = urlInput.value.trim();
         if (input) loadPage(input, activeTabId);
     };
-    
-    urlInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('goBtn').click();
-    });
-    
+    urlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') document.getElementById('goBtn').click(); });
     document.getElementById('reloadBtn').onclick = () => {
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab) loadPage(tab.url, activeTabId);
     };
-    
-    document.getElementById('homeBtn').onclick = () => {
-        loadPage('https://example.com', activeTabId);
-    };
-    
+    document.getElementById('homeBtn').onclick = () => loadPage('https://example.com', activeTabId);
     document.getElementById('backBtn').onclick = () => {
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab && tab.historyIndex > 0) {
@@ -577,7 +409,6 @@
             loadPage(tab.history[tab.historyIndex], activeTabId);
         }
     };
-    
     document.getElementById('forwardBtn').onclick = () => {
         const tab = tabs.find(t => t.id === activeTabId);
         if (tab && tab.historyIndex < tab.history.length - 1) {
@@ -585,25 +416,17 @@
             loadPage(tab.history[tab.historyIndex], activeTabId);
         }
     };
-    
     document.getElementById('bookmarkBtn').onclick = async () => {
         const tab = tabs.find(t => t.id === activeTabId);
-        if (!currentUser) {
-            alert('Войдите в аккаунт, чтобы добавлять закладки');
-            return;
-        }
+        if (!currentUser) { alert('Войдите в аккаунт'); return; }
         if (tab) {
-            await supabase.from('bookmarks').insert({
-                user_id: currentUser.id,
-                url: tab.url,
-                title: tab.url
-            });
+            await sbClient.from('bookmarks').insert({ user_id: currentUser.id, url: tab.url, title: tab.url });
             setStatus('⭐ Добавлено в закладки');
-            setTimeout(() => setStatus('Готов к работе'), 2000);
+            setTimeout(() => setStatus('Готов'), 2000);
         }
     };
     
-    // ============= ЗАПУСК =============
+    // ЗАПУСК
     createNewTab('https://example.com');
 </script>
 </body>
