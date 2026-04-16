@@ -3,56 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BrToSb — Полноценный браузер на Supabase</title>
+    <title>BrToSb — Браузер на Supabase</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+            user-select: none;
         }
         body {
-            background: #1a1a2e;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            padding: 16px;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
-        /* Браузерное окружение */
-        .browser-shell {
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
+        .browser-container {
+            max-width: 1400px;
+            margin: 0 auto;
         }
-        /* Верхняя панель */
-        .browser-toolbar {
+        /* ШАПКА */
+        .browser-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+        }
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+        }
+        .badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.8);
+        }
+        .auth-btn {
+            background: rgba(255,255,255,0.1);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        .auth-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        /* РАМКА БРАУЗЕРА */
+        .browser-frame {
             background: #1e1e2e;
-            padding: 8px 12px;
-            border-bottom: 1px solid #2a2a3e;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
-        /* Вкладки */
-        .tabs-row {
+        /* ВКЛАДКИ */
+        .tabs-bar {
             display: flex;
+            align-items: center;
             gap: 4px;
+            padding: 12px 12px 0 12px;
             overflow-x: auto;
-            padding-bottom: 8px;
+            background: #1e1e2e;
         }
         .tab {
             display: flex;
             align-items: center;
             gap: 8px;
-            padding: 6px 12px;
+            padding: 8px 16px;
             background: #2a2a3e;
-            border-radius: 8px 8px 0 0;
+            border-radius: 10px 10px 0 0;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             color: #aaa;
+            transition: all 0.2s;
             white-space: nowrap;
         }
         .tab.active {
             background: #3a3a5e;
             color: white;
+            border-bottom: 2px solid #ff6b6b;
         }
-        .tab-close {
-            width: 14px;
-            height: 14px;
+        .tab:hover:not(.active) {
+            background: #353550;
+            color: #ddd;
+        }
+        .close-tab {
+            width: 16px;
+            height: 16px;
             border-radius: 50%;
             background: #ff6b6b;
             display: inline-flex;
@@ -60,39 +111,57 @@
             justify-content: center;
             font-size: 10px;
             cursor: pointer;
+            color: white;
         }
-        .new-tab {
-            padding: 6px 12px;
+        .new-tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 8px 12px;
             background: #2a2a3e;
-            border-radius: 8px 8px 0 0;
+            border-radius: 10px 10px 0 0;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 13px;
             color: #aaa;
         }
-        /* Навигация */
-        .nav-controls {
+        .new-tab-btn:hover {
+            background: #353550;
+            color: #ddd;
+        }
+        /* ПАНЕЛЬ НАВИГАЦИИ */
+        .nav-bar {
             display: flex;
-            gap: 8px;
             align-items: center;
-            margin-top: 8px;
+            gap: 8px;
+            padding: 12px 16px;
+            background: #1e1e2e;
+            border-top: 1px solid #2a2a3e;
         }
         .nav-btn {
-            width: 32px;
-            height: 32px;
-            background: #2a2a3e;
-            border-radius: 8px;
+            width: 36px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: #2a2a3e;
+            border-radius: 10px;
             cursor: pointer;
+            transition: all 0.2s;
+            font-size: 18px;
+            color: white;
         }
-        .url-container {
+        .nav-btn:hover {
+            background: #3a3a5e;
+            transform: scale(1.05);
+        }
+        .url-bar {
             flex: 1;
             background: #2a2a3e;
-            border-radius: 8px;
-            padding: 6px 12px;
+            border-radius: 12px;
+            padding: 8px 16px;
+            border: 1px solid #3a3a5e;
         }
-        .url-container input {
+        .url-bar input {
             width: 100%;
             background: transparent;
             border: none;
@@ -100,44 +169,61 @@
             color: white;
             font-size: 14px;
         }
+        .url-bar input::placeholder {
+            color: #666;
+        }
         .go-btn {
-            background: #ff6b6b;
-            padding: 6px 20px;
-            border-radius: 8px;
-            cursor: pointer;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            padding: 8px 24px;
+            border-radius: 12px;
             color: white;
             font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        /* Область просмотра */
-        .browser-viewport {
-            flex: 1;
+        .go-btn:hover {
+            transform: scale(1.02);
+            filter: brightness(1.05);
+        }
+        /* ОБЛАСТЬ КОНТЕНТА */
+        .content-area {
             background: white;
+            min-height: 550px;
             position: relative;
-            overflow: auto;
         }
-        #page-frame {
+        #browser-iframe {
             width: 100%;
-            height: 100%;
+            height: 550px;
             border: none;
+            background: white;
         }
-        /* Затемнение при загрузке */
-        .loading-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(255,255,255,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
+        /* РЕЗУЛЬТАТЫ ПОИСКА */
+        .search-container {
+            padding: 20px;
+            background: white;
+            height: 550px;
+            overflow-y: auto;
         }
+        .search-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+        }
+        .search-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+            border-color: #ff6b6b;
+        }
+        /* ЛОАДЕР - убрали туман, просто спиннер */
         .loader {
-            width: 40px;
-            height: 40px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #ff6b6b;
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #ff6b6b;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -145,225 +231,151 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255,255,255,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .status-bar {
+            margin-top: 16px;
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
         .hidden {
             display: none !important;
         }
-        /* Результаты поиска */
-        .search-container {
-            padding: 20px;
-            background: white;
-            height: 100%;
-            overflow-y: auto;
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
         }
-        .search-result {
-            padding: 16px;
-            border-bottom: 1px solid #e0e0e0;
-            cursor: pointer;
-        }
-        .search-result:hover {
-            background: #f5f5f5;
-        }
-        .status-bar {
+        ::-webkit-scrollbar-track {
             background: #1e1e2e;
-            padding: 4px 12px;
-            font-size: 11px;
-            color: #888;
-            display: flex;
-            justify-content: space-between;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #ff6b6b;
+            border-radius: 10px;
         }
     </style>
 </head>
 <body>
-<div class="browser-shell">
-    <!-- Верхняя панель -->
-    <div class="browser-toolbar">
-        <div class="tabs-row" id="tabsContainer"></div>
-        <div class="nav-controls">
+<div class="browser-container">
+    <!-- ШАПКА -->
+    <div class="browser-header">
+        <div class="logo-area">
+            <img src="https://img.icons8.com/fluency/48/traffic-light.png" class="logo-icon" alt="logo">
+            <span class="logo-text">BrToSb</span>
+            <span class="badge">Supabase Browser</span>
+        </div>
+        <button id="authBtn" class="auth-btn">
+            <img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px; height: 18px;" alt="user">
+            <span>Войти</span>
+        </button>
+    </div>
+
+    <!-- БРАУЗЕР -->
+    <div class="browser-frame">
+        <div class="tabs-bar" id="tabsContainer"></div>
+        
+        <div class="nav-bar">
             <div class="nav-btn" id="backBtn">◀</div>
             <div class="nav-btn" id="forwardBtn">▶</div>
             <div class="nav-btn" id="reloadBtn">⟳</div>
             <div class="nav-btn" id="homeBtn">🏠</div>
-            <div class="url-container">
+            <div class="url-bar">
                 <input type="text" id="urlInput" placeholder="Введите URL или поисковый запрос...">
             </div>
             <div class="go-btn" id="goBtn">Перейти</div>
             <div class="nav-btn" id="bookmarkBtn">⭐</div>
         </div>
-    </div>
 
-    <!-- Область просмотра -->
-    <div class="browser-viewport" id="viewport">
-        <iframe id="page-frame" src="about:blank" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation"></iframe>
-        <div id="searchPanel" class="search-container hidden"></div>
-        <div id="loadingOverlay" class="loading-overlay hidden">
-            <div class="loader"></div>
+        <div class="content-area">
+            <iframe id="browser-iframe" src="about:blank" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-top-navigation-by-user-activation"></iframe>
+            <div id="searchContainer" class="search-container hidden"></div>
+            <div id="loadingOverlay" class="loading-overlay hidden">
+                <div class="loader"></div>
+            </div>
         </div>
     </div>
 
-    <!-- Статус бар -->
     <div class="status-bar">
-        <span>🔒 BrToSb на Supabase</span>
-        <span id="statusText">✅ Готов</span>
+        <span>📦 Supabase Storage</span>
+        <span id="statusText">✅ Готов к работе</span>
     </div>
 </div>
 
 <script>
-    // ============= НАСТРОЙКИ =============
+    // ============= НАСТРОЙКИ SUPABASE (без ошибки дублирования) =============
     const SUPABASE_URL = 'https://runvaexsmgbdeboauaap.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1bnZhZXhzbWdiZGVib2F1YWFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwMzM1MzcsImV4cCI6MjA5MDYwOTUzN30.y5AL4XkUPzDl1jGDLfvKistXflOpuxcSoedzbhr6hgk';
     
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    // Проверяем, не создан ли уже клиент
+    let supabase;
+    if (window._supabaseClient) {
+        supabase = window._supabaseClient;
+    } else {
+        supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        window._supabaseClient = supabase;
+    }
     
-    // ============= СОСТОЯНИЕ =============
+    // ============= ГЛОБАЛЬНОЕ СОСТОЯНИЕ =============
     let currentUser = null;
     let tabs = [];
     let activeTabId = null;
-    let tabIdCounter = 0;
+    let tabCounter = 0;
     
-    // DOM элементы
-    const iframe = document.getElementById('page-frame');
+    // ============= DOM ЭЛЕМЕНТЫ =============
+    const iframe = document.getElementById('browser-iframe');
     const urlInput = document.getElementById('urlInput');
-    const searchPanel = document.getElementById('searchPanel');
+    const searchContainer = document.getElementById('searchContainer');
     const loadingOverlay = document.getElementById('loadingOverlay');
     const statusText = document.getElementById('statusText');
     const tabsContainer = document.getElementById('tabsContainer');
-    const viewport = document.getElementById('viewport');
     
-    // ============= ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =============
     function setStatus(text, isError = false) {
         statusText.innerHTML = isError ? `❌ ${text}` : `✅ ${text}`;
-        console.log(`[Status] ${text}`);
     }
     
-    // Загрузка через Edge Function
-    async function fetchViaEdge(action, data) {
-        try {
-            const { data: result, error } = await supabase.functions.invoke('fetch-page', {
-                body: JSON.stringify({
-                    action: action,
-                    ...data,
-                    userId: currentUser?.id || 'anonymous'
-                })
-            });
-            if (error) throw error;
-            return result;
-        } catch (err) {
-            console.error('Edge error:', err);
-            return { success: false, error: err.message };
-        }
-    }
-    
-    // Загрузка страницы
-    async function loadPage(url, tabId) {
-        const tab = tabs.find(t => t.id === tabId);
-        if (!tab) return;
-        
-        // Нормализация URL
-        let finalUrl = url.trim();
-        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://') && !finalUrl.includes('.')) {
-            // Это поисковый запрос
-            await performSearch(finalUrl, tabId);
-            return;
-        }
-        if (!finalUrl.startsWith('http')) {
-            finalUrl = 'https://' + finalUrl;
-        }
-        
-        // Показываем загрузку
-        loadingOverlay.classList.remove('hidden');
-        searchPanel.classList.add('hidden');
-        iframe.classList.remove('hidden');
-        setStatus('Загрузка...');
-        
-        try {
-            const result = await fetchViaEdge('navigate', { url: finalUrl });
-            
-            if (result.success) {
-                // Загружаем в iframe
-                iframe.srcdoc = result.html;
-                
-                // Обновляем историю
-                if (tab.historyIndex < tab.history.length - 1) {
-                    tab.history = tab.history.slice(0, tab.historyIndex + 1);
-                }
-                tab.history.push(result.url || finalUrl);
-                tab.historyIndex = tab.history.length - 1;
-                tab.url = result.url || finalUrl;
-                
-                urlInput.value = result.url || finalUrl;
-                setStatus(`Загружено: ${result.title || finalUrl}`);
-            } else if (result.searchResults) {
-                showSearchResults(result.searchResults, finalUrl, tabId);
-                setStatus(`🔍 Результаты поиска`);
-            } else {
-                throw new Error(result.error || 'Ошибка загрузки');
-            }
-        } catch (err) {
-            iframe.srcdoc = `<html><body style="font-family: Arial; padding: 40px; text-align: center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p><p>Попробуйте другой URL</p></body></html>`;
-            setStatus(err.message, true);
-        } finally {
-            loadingOverlay.classList.add('hidden');
-        }
-    }
-    
-    // Поиск
-    async function performSearch(query, tabId) {
-        loadingOverlay.classList.remove('hidden');
-        setStatus('Поиск...');
-        
-        try {
-            const result = await fetchViaEdge('search', { query: query });
-            
-            if (result.success && result.results) {
-                showSearchResults(result.results, query, tabId);
-                setStatus(`Найдено ${result.results.length} результатов`);
-            } else {
-                showSearchResults([], query, tabId);
-                setStatus('Ничего не найдено');
-            }
-        } catch (err) {
-            showSearchResults([], query, tabId);
-            setStatus('Ошибка поиска', true);
-        } finally {
-            loadingOverlay.classList.add('hidden');
-        }
-    }
-    
-    function showSearchResults(results, query, tabId) {
+    // Показать результаты поиска
+    function showSearchResults(results, query) {
         iframe.classList.add('hidden');
-        searchPanel.classList.remove('hidden');
+        searchContainer.classList.remove('hidden');
         
         if (!results || results.length === 0) {
-            searchPanel.innerHTML = `
+            searchContainer.innerHTML = `
                 <div style="text-align: center; padding: 60px;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🔍</div>
                     <h3>Ничего не найдено по запросу "${escapeHtml(query)}"</h3>
-                    <p style="color: #666; margin-top: 10px;">Попробуйте другой запрос</p>
+                    <p style="color: #666;">Попробуйте другой поисковый запрос</p>
                 </div>
             `;
             return;
         }
         
-        searchPanel.innerHTML = `
-            <div style="margin-bottom: 20px; padding: 12px; background: #f0f0f0; border-radius: 8px;">
-                <strong>🔍 Результаты поиска: "${escapeHtml(query)}"</strong> (${results.length})
+        searchContainer.innerHTML = `
+            <div style="margin-bottom: 20px; padding: 12px; background: linear-gradient(135deg, #fff5f5, #fff0f0); border-radius: 12px;">
+                <strong>🔍 Результаты поиска: "${escapeHtml(query)}"</strong>
+                <span style="color: #666; margin-left: 10px;">(найдено ${results.length})</span>
             </div>
             ${results.map(r => `
-                <div class="search-result" onclick="window.navigateTo('${escapeHtml(r.url)}')">
-                    <div style="font-weight: bold; color: #1a73e8;">${escapeHtml(r.title || r.url)}</div>
-                    <div style="font-size: 12px; color: #0d652d; margin-top: 4px;">${escapeHtml(r.url)}</div>
-                    <div style="font-size: 13px; color: #555; margin-top: 6px;">${escapeHtml(r.description || '')}</div>
+                <div class="search-card" onclick="window.navigateToUrl('${escapeHtml(r.url)}')">
+                    <div style="display: flex; gap: 12px;">
+                        <img src="https://www.google.com/s2/favicons?domain=${r.url}" style="width: 24px; height: 24px;">
+                        <div>
+                            <div style="font-weight: bold; color: #667eea;">${escapeHtml(r.title || r.url)}</div>
+                            <div style="font-size: 13px; color: #888; margin-top: 4px;">${escapeHtml(r.url)}</div>
+                            <div style="font-size: 14px; color: #555; margin-top: 6px;">${escapeHtml(r.description || 'Нет описания')}</div>
+                        </div>
+                    </div>
                 </div>
             `).join('')}
         `;
-        
-        // Обновляем URL вкладки
-        const tab = tabs.find(t => t.id === tabId);
-        if (tab) {
-            tab.url = `search:${query}`;
-            urlInput.value = query;
-            renderTabs();
-        }
     }
     
     function escapeHtml(str) {
@@ -376,16 +388,79 @@
         });
     }
     
-    window.navigateTo = function(url) {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab) {
-            loadPage(url, activeTabId);
+    // Вызов Edge Function
+    async function callEdgeFunction(action, data) {
+        try {
+            const { data: result, error } = await supabase.functions.invoke('fetch-page', {
+                body: JSON.stringify({
+                    action: action,
+                    ...data,
+                    userId: currentUser?.id || 'anonymous'
+                })
+            });
+            if (error) throw error;
+            return result;
+        } catch (err) {
+            console.error('Edge Function error:', err);
+            setStatus(err.message, true);
+            return { success: false, error: err.message };
         }
+    }
+    
+    // Загрузка страницы
+    async function loadPage(url, tabId) {
+        const tab = tabs.find(t => t.id === tabId);
+        if (!tab) return;
+        
+        let finalUrl = url;
+        if (!finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+            finalUrl = 'https://' + finalUrl;
+        }
+        
+        loadingOverlay.classList.remove('hidden');
+        searchContainer.classList.add('hidden');
+        iframe.classList.remove('hidden');
+        setStatus('Загрузка...');
+        
+        try {
+            const result = await callEdgeFunction('navigate', { url: finalUrl });
+            
+            if (result.success) {
+                iframe.srcdoc = result.html;
+                
+                if (tab.historyIndex < tab.history.length - 1) {
+                    tab.history = tab.history.slice(0, tab.historyIndex + 1);
+                }
+                tab.history.push(result.url || finalUrl);
+                tab.historyIndex = tab.history.length - 1;
+                tab.url = result.url || finalUrl;
+                
+                urlInput.value = result.url || finalUrl;
+                setStatus(`Загружено: ${result.title || finalUrl}`);
+            } else if (result.searchResults) {
+                showSearchResults(result.searchResults, finalUrl);
+                setStatus(`Сайт не найден, показаны результаты поиска`);
+            } else {
+                throw new Error(result.error || 'Неизвестная ошибка');
+            }
+        } catch (err) {
+            iframe.srcdoc = `<html><body style="font-family: Arial; padding: 40px; text-align: center;"><h2>⚠️ Ошибка</h2><p>${err.message}</p><p>Попробуйте другой URL</p></body></html>`;
+            setStatus(`Ошибка: ${err.message}`, true);
+        } finally {
+            loadingOverlay.classList.add('hidden');
+        }
+    }
+    
+    window.navigateToUrl = function(url) {
+        searchContainer.classList.add('hidden');
+        iframe.classList.remove('hidden');
+        const tab = tabs.find(t => t.id === activeTabId);
+        if (tab) loadPage(url, activeTabId);
     };
     
     // ============= УПРАВЛЕНИЕ ВКЛАДКАМИ =============
-    function createTab(url = 'https://example.com') {
-        const newId = ++tabIdCounter;
+    function createNewTab(url = 'https://example.com') {
+        const newId = ++tabCounter;
         const newTab = {
             id: newId,
             url: url,
@@ -403,25 +478,19 @@
         activeTabId = tabId;
         const tab = tabs.find(t => t.id === tabId);
         if (tab) {
-            urlInput.value = tab.url.startsWith('search:') ? tab.url.replace('search:', '') : tab.url;
+            urlInput.value = tab.url;
             renderTabs();
-            
-            if (tab.url.startsWith('search:')) {
-                const query = tab.url.replace('search:', '');
-                performSearch(query, tabId);
-            } else {
-                loadPage(tab.url, tabId);
-            }
+            loadPage(tab.url, tabId);
         }
     }
     
     function closeTab(tabId) {
-        if (tabs.length <= 1) return;
+        if (tabs.length === 1) return;
         const index = tabs.findIndex(t => t.id === tabId);
         if (index !== -1) {
             tabs.splice(index, 1);
             if (activeTabId === tabId) {
-                const newActive = tabs[Math.max(0, index - 1)];
+                const newActive = tabs[Math.min(index, tabs.length - 1)];
                 if (newActive) switchToTab(newActive.id);
             }
             renderTabs();
@@ -433,22 +502,16 @@
         tabs.forEach(tab => {
             const tabDiv = document.createElement('div');
             tabDiv.className = `tab ${activeTabId === tab.id ? 'active' : ''}`;
-            let displayName = 'Новая';
-            if (tab.url.startsWith('search:')) {
-                displayName = `🔍 ${tab.url.replace('search:', '').substring(0, 20)}`;
-            } else {
-                try {
-                    displayName = new URL(tab.url).hostname || 'Новая';
-                } catch(e) {
-                    displayName = 'Новая';
-                }
-            }
+            let hostname = 'Новая';
+            try {
+                hostname = new URL(tab.url).hostname;
+            } catch(e) {}
             tabDiv.innerHTML = `
-                <span>${displayName.substring(0, 25)}</span>
-                <span class="tab-close" data-id="${tab.id}">✕</span>
+                <span>${hostname.substring(0, 25)}</span>
+                <span class="close-tab" data-id="${tab.id}">✕</span>
             `;
             tabDiv.onclick = (e) => {
-                if (e.target.classList.contains('tab-close')) {
+                if (e.target.classList.contains('close-tab')) {
                     e.stopPropagation();
                     closeTab(tab.id);
                 } else {
@@ -458,25 +521,54 @@
             tabsContainer.appendChild(tabDiv);
         });
         
-        const newBtn = document.createElement('div');
-        newBtn.className = 'new-tab';
-        newBtn.innerHTML = '+ Новая';
-        newBtn.onclick = () => createTab();
-        tabsContainer.appendChild(newBtn);
+        const newTabBtn = document.createElement('div');
+        newTabBtn.className = 'new-tab-btn';
+        newTabBtn.innerHTML = '➕ Новая';
+        newTabBtn.onclick = () => createNewTab();
+        tabsContainer.appendChild(newTabBtn);
     }
+    
+    // ============= АВТОРИЗАЦИЯ =============
+    const authBtn = document.getElementById('authBtn');
+    authBtn.onclick = async () => {
+        if (currentUser) {
+            await supabase.auth.signOut();
+            currentUser = null;
+            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;"><span>Войти</span>`;
+            setStatus('Вы вышли из аккаунта');
+        } else {
+            const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
+            if (error) alert('Ошибка: ' + error.message);
+        }
+    };
+    
+    supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+            currentUser = session.user;
+            const userName = session.user.email.split('@')[0];
+            authBtn.innerHTML = `<img src="https://img.icons8.com/ios-glyphs/30/ffffff/user--v1.png" style="width: 18px;"><span>${userName}</span>`;
+            setStatus(`Авторизован как ${session.user.email}`);
+        }
+    });
     
     // ============= НАВИГАЦИЯ =============
     document.getElementById('goBtn').onclick = () => {
-        const input = urlInput.value.trim();
-        if (input) {
-            const tab = tabs.find(t => t.id === activeTabId);
-            if (tab) loadPage(input, activeTabId);
-        }
+        let input = urlInput.value.trim();
+        if (input) loadPage(input, activeTabId);
     };
     
     urlInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') document.getElementById('goBtn').click();
     });
+    
+    document.getElementById('reloadBtn').onclick = () => {
+        const tab = tabs.find(t => t.id === activeTabId);
+        if (tab) loadPage(tab.url, activeTabId);
+    };
+    
+    document.getElementById('homeBtn').onclick = () => {
+        loadPage('https://example.com', activeTabId);
+    };
     
     document.getElementById('backBtn').onclick = () => {
         const tab = tabs.find(t => t.id === activeTabId);
@@ -494,64 +586,25 @@
         }
     };
     
-    document.getElementById('reloadBtn').onclick = () => {
-        const tab = tabs.find(t => t.id === activeTabId);
-        if (tab && !tab.url.startsWith('search:')) {
-            loadPage(tab.url, activeTabId);
-        }
-    };
-    
-    document.getElementById('homeBtn').onclick = () => {
-        loadPage('https://example.com', activeTabId);
-    };
-    
-    // ============= АВТОРИЗАЦИЯ =============
-    const bookmarkBtn = document.getElementById('bookmarkBtn');
-    bookmarkBtn.onclick = async () => {
+    document.getElementById('bookmarkBtn').onclick = async () => {
         const tab = tabs.find(t => t.id === activeTabId);
         if (!currentUser) {
-            alert('Войдите через GitHub, чтобы добавить закладку');
+            alert('Войдите в аккаунт, чтобы добавлять закладки');
             return;
         }
-        if (tab && !tab.url.startsWith('search:')) {
+        if (tab) {
             await supabase.from('bookmarks').insert({
                 user_id: currentUser.id,
                 url: tab.url,
                 title: tab.url
             });
             setStatus('⭐ Добавлено в закладки');
-            setTimeout(() => setStatus('Готов'), 2000);
+            setTimeout(() => setStatus('Готов к работе'), 2000);
         }
     };
-    
-    // Кнопка авторизации в шапке (добавим простую)
-    const authSection = document.createElement('div');
-    authSection.style.cssText = 'position: fixed; top: 10px; right: 20px; z-index: 10000;';
-    authSection.innerHTML = `<button id="simpleAuthBtn" style="background: #ff6b6b; border: none; padding: 6px 12px; border-radius: 8px; color: white; cursor: pointer;">🔑 Войти</button>`;
-    document.body.appendChild(authSection);
-    
-    document.getElementById('simpleAuthBtn').onclick = async () => {
-        if (currentUser) {
-            await supabase.auth.signOut();
-            currentUser = null;
-            document.getElementById('simpleAuthBtn').innerHTML = '🔑 Войти';
-            setStatus('Вы вышли');
-        } else {
-            const { error } = await supabase.auth.signInWithOAuth({ provider: 'github' });
-            if (error) alert('Ошибка: ' + error.message);
-        }
-    };
-    
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
-            currentUser = session.user;
-            document.getElementById('simpleAuthBtn').innerHTML = `👤 ${session.user.email.split('@')[0]}`;
-            setStatus(`Авторизован как ${session.user.email}`);
-        }
-    });
     
     // ============= ЗАПУСК =============
-    createTab('https://example.com');
+    createNewTab('https://example.com');
 </script>
 </body>
 </html>
