@@ -212,6 +212,22 @@
             font-size: 12px; display: flex; justify-content: space-between;
         }
         .hidden { display: none !important; }
+        .escape-warning {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #ff6b6b;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #1e1e2e; }
         ::-webkit-scrollbar-thumb { background: #ff6b6b; border-radius: 10px; }
@@ -260,7 +276,11 @@
         </div>
 
         <div class="content-area">
-            <iframe id="page-frame" src="about:blank" style="width:100%;height:550px;border:none;"></iframe>
+            <iframe id="page-frame" 
+                    src="about:blank" 
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads"
+                    style="width:100%;height:550px;border:none;">
+            </iframe>
             <div id="search-page" class="search-page hidden"></div>
             <div id="loadingOverlay" class="loading-overlay hidden">
                 <div class="loader"></div>
@@ -285,6 +305,7 @@
     let activeTabId = null;
     let tabCounter = 0;
     let isLoginMode = true;
+    let iframeObserverInterval = null;
     
     const iframe = document.getElementById('page-frame');
     const searchPage = document.getElementById('search-page');
@@ -305,9 +326,123 @@
         statusSpan.innerHTML = isError ? `❌ ${text}` : `✅ ${text}`;
     }
     
+    function showEscapeWarning() {
+        const warning = document.createElement('div');
+        warning.className = 'escape-warning';
+        warning.innerHTML = '🛡️ Сайт пытался открыться вне безопасной среды — заблокировано';
+        document.body.appendChild(warning);
+        setTimeout(() => warning.remove(), 3000);
+        setStatus('⚠️ Попытка побега из песочницы заблокирована', true);
+    }
+    
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/[&<>]/g, m => m === '&' ? '&amp;' : (m === '<' ? '&lt;' : '&gt;'));
+    }
+    
+    // ПОЛНАЯ ЗАЩИТА IFRAME ОТ ПОБЕГОВ
+    function secureIframe(tabId) {
+        try {
+            const win = iframe.contentWindow;
+            const doc = iframe.contentDocument;
+            
+            if (!win || !doc) return;
+            
+            // 1. Запрещаем window.open
+            const originalOpen = win.open;
+            win.open = function(url, name, features) {
+                console.warn('[BrToSb] Блокировка window.open:', url);
+                showEscapeWarning();
+                if (url && typeof url === 'string' && !url.startsWith('about:')) {
+                    loadPage(url, tabId);
+                }
+                return null;
+            };
+            
+            // 2. Блокируем target="_top" и "_parent"
+            Object.defineProperty(win, 'parent', { value: win, writable: false, configurable: false });
+            Object.defineProperty(win, 'top', { value: win, writable: false, configurable: false });
+            Object.defineProperty(win, 'frameElement', { value: iframe, writable: false, configurable: false });
+            
+            // 3. Перехватываем submit форм
+            const forms = doc.querySelectorAll('form');
+            forms.forEach(form => {
+                if (form.hasAttribute('data-brtsb-protected')) return;
+                form.setAttribute('data-brtsb-protected', 'true');
+                
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    let action = form.action || win.location.href;
+                    const method = form.method.toUpperCase() || 'GET';
+                    const formData = new FormData(form);
+                    
+                    if (method === 'GET') {
+                        const params = new URLSearchParams(formData).toString();
+                        const url = action + (action.includes('?') ? '&' : '?') + params;
+                        loadPage(url, tabId);
+                    } else {
+                        fetch(action, { method: method, body: formData })
+                            .then(res => res.text())
+                            .then(html => {
+                                const fixedHtml = fixRelativeUrls(html, action);
+                                iframe.srcdoc = fixedHtml;
+                                setTimeout(() => secureIframe(tabId), 100);
+                            })
+                            .catch(err => console.error('Form submit error:', err));
+                    }
+                    return false;
+                });
+            });
+            
+            // 4. Перехватываем клики по всем ссылкам (дополнительная защита)
+            doc.querySelectorAll('a').forEach(link => {
+                if (link.hasAttribute('data-brtsb-link-protected')) return;
+                link.setAttribute('data-brtsb-link-protected', 'true');
+                
+                const originalClick = link.onclick;
+                link.onclick = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const href = link.getAttribute('href');
+                    if (href && href !== '#' && !href.startsWith('javascript:')) {
+                        loadPage(href, tabId);
+                    }
+                    return false;
+                };
+            });
+            
+            // 5. Мониторинг изменения location.href
+            let lastUrl = iframe.src;
+            if (iframeObserverInterval) clearInterval(iframeObserverInterval);
+            
+            iframeObserverInterval = setInterval(() => {
+                try {
+                    const currentUrl = win.location.href;
+                    if (currentUrl !== lastUrl && currentUrl !== 'about:blank' && !currentUrl.includes('about:blank')) {
+                        console.warn('[BrToSb] Обнаружено изменение location:', currentUrl);
+                        lastUrl = currentUrl;
+                        if (!currentUrl.startsWith('about:')) {
+                            loadPage(currentUrl, tabId);
+                        }
+                    }
+                } catch(e) {
+                    // CORS ошибка — ничего не делаем
+                }
+            }, 100);
+            
+            // 6. Блокируем создание новых окон через target="_blank" в HTML
+            const linksWithBlank = doc.querySelectorAll('a[target="_blank"], area[target="_blank"]');
+            linksWithBlank.forEach(el => {
+                el.setAttribute('target', '_self');
+            });
+            
+            setStatus('🛡️ Защита от побегов активна');
+            
+        } catch(e) {
+            console.log('Cannot secure iframe due to CORS or restrictions:', e.message);
+        }
     }
     
     // Функция для преобразования относительных ссылок в абсолютные
@@ -324,16 +459,7 @@
                     link.setAttribute('href', absoluteUrl);
                 } catch(e) {}
             }
-            // Добавляем обработчик клика для перехвата
-            link.setAttribute('target', '_top');
-            link.onclick = function(e) {
-                e.preventDefault();
-                const newUrl = this.getAttribute('href');
-                if (newUrl && newUrl !== '#') {
-                    loadPage(newUrl, activeTabId);
-                }
-                return false;
-            };
+            link.setAttribute('target', '_self');
         });
         
         // Исправляем формы
@@ -345,7 +471,7 @@
                     form.setAttribute('action', absoluteUrl);
                 } catch(e) {}
             }
-            form.setAttribute('target', '_top');
+            form.setAttribute('target', '_self');
         });
         
         // Исправляем изображения
@@ -355,17 +481,6 @@
                 try {
                     const absoluteUrl = new URL(src, baseUrl).href;
                     img.setAttribute('src', absoluteUrl);
-                } catch(e) {}
-            }
-        });
-        
-        // Исправляем CSS
-        temp.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-            let href = link.getAttribute('href');
-            if (href && !href.startsWith('http://') && !href.startsWith('https://')) {
-                try {
-                    const absoluteUrl = new URL(href, baseUrl).href;
-                    link.setAttribute('href', absoluteUrl);
                 } catch(e) {}
             }
         });
@@ -543,11 +658,13 @@
                 const result = await callEdgeFunction('navigate', { url: finalUrl });
                 
                 if (result.success) {
-                    // Исправляем относительные ссылки
                     const fixedHtml = fixRelativeUrls(result.html, result.url);
                     iframe.srcdoc = fixedHtml;
                     iframe.classList.remove('hidden');
                     searchPage.classList.add('hidden');
+                    
+                    // Активируем защиту после загрузки страницы
+                    setTimeout(() => secureIframe(tabId), 200);
                     
                     const tab = tabs.find(t => t.id === tabId);
                     if (tab) {
